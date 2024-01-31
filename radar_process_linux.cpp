@@ -3,8 +3,8 @@
 
 #include "radar_process_linux.h"
 #include <iostream>
-#include "bnet_interface.h"
-#include <string>
+#include "bnet_async.h"
+#include <string> 
 
 
 
@@ -15,7 +15,7 @@ int main()
 {
 	cout << "Let's track some bad guys\n" << endl;
 
-	bnet_interface bnet_commands;
+	bnet_async bnet_commands;
 
 	string ip = "192.168.1.2";
 	unsigned short port = 23;
