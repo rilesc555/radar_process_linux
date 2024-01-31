@@ -1,0 +1,31 @@
+[16:26:10:946] BNET API:
+BNET VERSION: 11.1.5	BUILD TIME: May  3 2021 21:54:10
+Connected to MESA-002623 at 192.168.1.2:23
+	STATUS data: 29979
+	RVMAP data: 29980
+	DETECTION data: 29981
+	TRACK data: 29982
+	MEASUREMENT data: 29984
+
+[16:26:10:946] BNET:
+*IDN? 
+[16:26:10:953] MESA:
+ECHODYNE Corp. EchoGuard-CR Radar
+COUNTRY MODE: USA
+OPERATION MODE: Pedestrian
+Serial Number: "002623"
+
+SW Suite: 16.3.0
+
+MCU Firmware version: 21.7.D.2.1 (33.2.1)
+MCU Firmware build date: Jul 14 2021 18:08:25
+FPGA Firmware version: 9D16
+FPGA ID: A6
+FPGA Time Stamp: Sun Nov  8 00:56:51 2020
+HW CONFIG: BLOCK1
+
+Please report issues to help@echodyne.com
+OK
+
+[16:26:10:958] BNET API:
+Disconnected
