@@ -5,7 +5,9 @@
 #include <iostream>
 #include "bnet_async.h"
 #include <string> 
-
+#include <thread>
+#include <future>
+#include <vector>
 
 
 
@@ -13,7 +15,7 @@ using namespace std;
 
 int main()
 {
-	cout << "Let's track some bad guys\n" << endl;
+	std::cout << "Let's track some bad guys\n" << endl;
 
 	bnet_async bnet_commands;
 
@@ -29,27 +31,33 @@ int main()
 	
 	bnet_commands.connect(ip, port, custom_directory);
 
-	string command = "LIST";
+	string command;
 
 	while (command != "Q" && command != "q") {
+		std::cout << "Enter a command (LIST for available commands, Q/q to quit):\n";
+		cin >> command;		
+		if (command != "Q" && command != "q") {
+			string output = bnet_commands.send_command(command).second; 
+			std::cout << output << endl;
+		}
+	}
 		
-		string output = bnet_commands.send_command(command).second;
+	try {
+		vector<track_data> tracks = bnet_commands.get_track().data;
+		std::cout << tracks.at(0).azest << endl;
+	}
+	catch (...) {
+		std::cout << "No tracks available" << endl;
+	}
+		
+	bnet_commands.disconnect();
+	std::cout << "Disconnected" << endl;
 
-		cout << output << "\nEnter a command (Q/q to quit): ";
+	bnet_commands.~bnet_async();
 
-		cin >> command;
-
-
-		size_t tracks = bnet_commands.get_n_buffered(TRACK_DATA);
-
-		cout << tracks << endl;
+	return 0;
 
 	}
 
-	bnet_commands.disconnect();
-	cout << "Disconnected" << endl;
 
-	bnet_commands.~bnet_interface();
 
-	return 0;
-}
