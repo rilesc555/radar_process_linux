@@ -31,6 +31,8 @@ int main()
 	
 	bnet_commands.connect(ip, port, custom_directory);
 
+	//THIS IS ASYNC
+
 	string command;
 
 	while (command != "Q" && command != "q") {
