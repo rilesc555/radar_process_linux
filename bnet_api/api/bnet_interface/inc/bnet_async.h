@@ -23,6 +23,8 @@ class bnet_async : public bnet_interface
         typedef std::function<void(bool)> ConnectCallback_t;
         typedef std::function<void(bool, std::string, mesa_command_status_t)> CommandCallback_t;
 
+
+
         bnet_async(void);
 		~bnet_async(void);
 
