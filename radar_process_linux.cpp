@@ -13,21 +13,17 @@
 
 using namespace std;
 
+string ip = "192.168.1.2";
+unsigned short port = 23;
+string custom_directory = ".";
+
 int main()
 {
 	std::cout << "Let's track some bad guys\n" << endl;
 
 	bnet_async bnet_commands;
 
-	string ip = "192.168.1.2";
-	unsigned short port = 23;
-	string custom_directory = ".";
-
-	//cout << "ip: ";
-	//cin >> ip;
-	//cout << "directory: ";
-	//cin >> custom_directory;
-
+	std::thread status();
 	
 	bnet_commands.connect(ip, port, custom_directory);
 
