@@ -5,10 +5,10 @@
 #include "future"
 
 
-void static monitorStatus(const bnet_interface& bnet) {
+void monitorStatus( bnet_interface& bnet) {
 	
-	while (true) {
-		std::cout << "System state: " << bnet.get_status().data->sys_state << endl;
-		std::this_thread::sleep_for(std::chrono::seconds(1));
+	for (int i = 0; i < 10; i++) {
+		std::this_thread::sleep_for(std::chrono::seconds(5)); 
+		std::cout << "System state: " << bnet.get_status().data->eth_link_rate << endl;
 	}
 }
