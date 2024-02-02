@@ -1,13 +1,13 @@
 ﻿// radar_process_linux.cpp : Defines the entry point for the application.
 //
 
-#include "radar_process_linux.h"
 #include <iostream>
 #include "bnet_async.h"
 #include <string> 
 #include <thread>
 #include <future>
 #include <vector>
+#include "utils.h"
 
 
 
@@ -21,11 +21,11 @@ int main()
 {
 	std::cout << "Let's track some bad guys\n" << endl;
 
-	bnet_async bnet_commands;
-
-	std::thread status();
+	bnet_interface bnet_commands;
 	
 	bnet_commands.connect(ip, port, custom_directory);
+
+	monitorStatus(bnet_commands);
 
 	//THIS IS ASYNC
 
@@ -51,7 +51,7 @@ int main()
 	bnet_commands.disconnect();
 	std::cout << "Disconnected" << endl;
 
-	bnet_commands.~bnet_async();
+	bnet_commands.~bnet_interface();
 
 	return 0;
 
