@@ -25,6 +25,10 @@ int main()
 	
 	bnet_commands.connect(ip, port, custom_directory);
 
+	string output = bnet_commands.send_command("SCRIPT: ./Utils/input_script.txt").second;
+
+	std::cout << output << endl;
+
 	//monitorStatus(bnet_commands);
 
 	//THIS IS ASYNC
@@ -38,7 +42,7 @@ int main()
 			if (command == "MODE:SWT:START") {
 				bnet_commands.set_collect(TRACK_DATA, true);
 
-				string output = bnet_commands.send_command(command).second;
+				output = bnet_commands.send_command(command).second;
 
 				for (int i = 0; i < 90; i++) {
 					std::this_thread::sleep_for(std::chrono::seconds(1));
