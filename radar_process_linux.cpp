@@ -4,8 +4,7 @@
 #include <iostream>
 #include "bnet_async.h"
 #include <string> 
-#include <thread>
-#include <future>
+
 #include <vector>
 #include "utils.h"
 

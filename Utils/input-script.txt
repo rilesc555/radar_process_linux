@@ -1,0 +1,33 @@
+RESET:PARAMETERS
+
+## sets SWT operation to track UAVS
+MODE:SWT:OPERATIONMODE 1
+
+enable_track
+enable_track_logging
+
+## Set orientation in form <heading, pitch, roll>. All in degrees float. 
+## Heading not necessary, can be left at zero. 
+## Roll should be zero--make sure radar is positioned correctly
+## Pitch TBD
+PLATFORM:STATE:ORIENTATION <su_pwd> 0, <PITCH>, 0
+
+## Set radar height in meters. 
+PLATFORM:STATE:ELEVATIONAGL <su_pwd> <HEIGHT_IN_METERS>
+
+## Set minimum and maximum height in met
+ers for tracking. Probably best to make this the same as the radar height or slightly above
+AGLMASK:MINAGL <su_pwd> <HEIGHT_IN_METERS>
+
+AGLMASK:MAXAGL <su_pwd> <HEIGHT_IN_METERS>
+
+AGLMASK:ENABLE <su_pwd> TRUE
+
+
+
+
+
+
+
+
+
