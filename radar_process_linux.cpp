@@ -22,21 +22,32 @@ int main()
 
 	bnet_interface bnet_commands;
 	bnet_commands.connect(ip, port, custom_directory);
-    // Configures radar and starts tracking
-	string output = bnet_commands.send_command("SCRIPT: ./Utils/input_script.txt").second;
-	std::cout << output << endl;
+    // Configures radar
+	startupScript(bnet_commands);
+	
+	string command, output;
 
-    pthread_rwlock_t lock = PTHREAD_RWLOCK_INITIALIZER;
-    pthread.create
+	std::cout << "Tracking buffer length: " << bnet_commands.get_buffer_length(TRACK_DATA) << endl;
+	std::cout << "Amount of items being tracked: " << bnet_commands.get_n_buffered(TRACK_DATA) << endl;
+	while (true) {
+		std::cout << "Enter command: ";
+		std::getline(std::cin, command);
+		if (command == "exit") {
+			break;
+		}
+		output = bnet_commands.send_command(command).second;
+		std::cout << output << endl;
+	}
 
+	//output = bnet_commands.send_command("MODE:SWT:START").second;
+	//std::cout << output << endl;
+
+	//outputTracks(bnet_commands);
 
 	bnet_commands.disconnect();
 	std::cout << "Disconnected" << endl;
-
 	bnet_commands.~bnet_interface();
-
 	return 0;
-
 }
  
 

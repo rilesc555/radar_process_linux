@@ -11,6 +11,10 @@ using namespace std;
 
 void monitorStatus(bnet_interface& bnet);
 
+void startupScript(bnet_interface& bnet);
+
+void outputTracks(bnet_interface& bnet); 
+
 
 
 #endif
