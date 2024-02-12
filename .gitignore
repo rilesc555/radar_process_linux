@@ -4,3 +4,5 @@
 out/build/
 
 /build
+
+cmake-build-release/
