@@ -6,16 +6,7 @@
 #include "atomic"
 
 
-void monitorStatus( bnet_interface& bnet) {
-	std::atomic<bool> running(true);
-	bnet.set_collect(STATUS_DATA, true);
-	int i = 0;
-	while (i < 10) {
-		std::this_thread::sleep_for(std::chrono::seconds(5)); 
-		std::cout << "System state: " << bnet.get_status().data->sys_state << std::endl;
-		i++;
-	}
-}
+
 
 void startupScript(bnet_interface& bnet) {
 	std::string command, output;
@@ -28,6 +19,8 @@ void startupScript(bnet_interface& bnet) {
 	command = "enable_track_logging";
 	bnet.send_command(command);
 	bnet.set_collect(TRACK_DATA, true);
+	bnet.set_logging(TRACK_DATA);
+	bnet.set_save(TRACK_DATA, true);
 	command = "MODE:SWT:TRACK:ELFOVMIN -20";
 	bnet.send_command(command);
 	command = "RSP:RCSMASK:MAXRCS 10";

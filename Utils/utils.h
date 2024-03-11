@@ -21,7 +21,6 @@ struct coordinateStruct
 	coordinateStruct(float az, float el, float range) : az(az), el(el), range(range) {}
 };
 
-void monitorStatus(bnet_interface& bnet);
 
 void startupScript(bnet_interface& bnet);
 
