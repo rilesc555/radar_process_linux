@@ -9,7 +9,7 @@ set(CMAKE_CXX_STANDARD 20)
 
 project (radar_threaded)
 
-add_executable (radar_threaded "radar_process_linux.cpp" "Utils/utils.h" "Utils/utils.cpp")
+add_executable (radar_threaded "radar_process_linux.cpp" "Utils/utils.h" "Utils/utils.cpp" "Utils/ThreadSafeQueue.h")
 
 include_directories("./bnet_api/api/include" "./bnet_api/api/bnet_interface/inc" "./Utils")
 

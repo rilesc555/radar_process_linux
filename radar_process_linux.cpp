@@ -7,46 +7,61 @@
 #include <pthread.h>
 #include <vector>
 #include "utils.h"
+#include "ThreadSafeQueue.h"
 
 
 
-using namespace std;
-
-string ip = "192.168.1.2";
+std::string ip = "192.168.1.2";
 unsigned short port = 23;
-string custom_directory = ".";
+std::string custom_directory = ".";
+int sock = 0;
+struct sockaddr_in serv_addr;
 
 int main()
 {
-	std::cout << "Let's track some bad guys\n" << endl;
+	createSocket(sock, serv_addr);
 
+	std::cout << "Let's track some bad guys\n" << std::endl;
 	bnet_interface bnet_commands;
 	bnet_commands.connect(ip, port, custom_directory);
     // Configures radar
 	startupScript(bnet_commands);
-	
-	string command, output;
+	std::string command, output;
 
-	std::cout << "Tracking buffer length: " << bnet_commands.get_buffer_length(TRACK_DATA) << endl;
-	std::cout << "Amount of items being tracked: " << bnet_commands.get_n_buffered(TRACK_DATA) << endl;
+	ThreadSafeQueue<coordinateStruct> coordinateQueue;
+
 	while (true) {
-		std::cout << "Enter command: ";
+		std::cout << "Enter command (\"continue\" to start tracking) : ";
 		std::getline(std::cin, command);
-		if (command == "exit") {
+		if (command == "continue" || command == "Continue" || command == "CONTINUE") {
+			std::cout << "starting tracking" << std::endl;
 			break;
 		}
+
 		output = bnet_commands.send_command(command).second;
-		std::cout << output << endl;
+		std::cout << output << std::endl;
 	}
 
-	//output = bnet_commands.send_command("MODE:SWT:START").second;
-	//std::cout << output << endl;
+	output = bnet_commands.send_command("MODE:SWT:START").second;
+	std::cout << output << std::endl;
 
-	//outputTracks(bnet_commands);
+	while (true) {
+		if (bnet_commands.get_track().header->nTracks) {
+			coordinateStruct toTrack = getMostUAV(bnet_commands);
+			unsigned char* trackBuffer = serializeCoordinates(toTrack);
+			send(sock, trackBuffer, sizeof(float) * 3, 0);
+		}
+	}
+
+	output = bnet_commands.send_command("MODE:SWT:STOP").second;
+	std::cout << output << std::endl;
 
 	bnet_commands.disconnect();
-	std::cout << "Disconnected" << endl;
+	std::cout << "Disconnected" << std::endl;
 	bnet_commands.~bnet_interface();
+
+	close(sock);
+	std::cout << "Socket closed" << std::endl;
 	return 0;
 }
  
