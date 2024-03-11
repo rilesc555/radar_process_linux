@@ -16,6 +16,13 @@ unsigned short port = 23;
 std::string custom_directory = ".";
 int sock = 0;
 struct sockaddr_in serv_addr;
+sig_atomic_t exitLoop = 0;
+
+void sig_handler(int sig)
+{ 
+	exitLoop = 1; 
+	signal(SIGINT, SIG_DFL);
+}
 
 int main()
 {
@@ -26,11 +33,12 @@ int main()
 	bnet_commands.connect(ip, port, custom_directory);
     // Configures radar
 	startupScript(bnet_commands);
-	std::string command, output;
+	std::string command;
 
 	ThreadSafeQueue<coordinateStruct> coordinateQueue;
 
-	while (true) {
+
+	while (!exitLoop) {
 		std::cout << "Enter command (\"continue\" to start tracking) : ";
 		std::getline(std::cin, command);
 		if (command == "continue" || command == "Continue" || command == "CONTINUE") {
@@ -38,14 +46,15 @@ int main()
 			break;
 		}
 
-		output = bnet_commands.send_command(command).second;
-		std::cout << output << std::endl;
+		send_command(bnet_commands, command);
 	}
 
-	output = bnet_commands.send_command("MODE:SWT:START").second;
-	std::cout << output << std::endl;
+	send_command(bnet_commands, "MODE:SWT:START");
+	
+	// Set ctrl+c to exit loop
+	signal(SIGINT, sig_handler);
 
-	while (true) {
+	while (!exitLoop) {
 		if (bnet_commands.get_track().header->nTracks) {
 			coordinateStruct toTrack = getMostUAV(bnet_commands);
 			unsigned char* trackBuffer = serializeCoordinates(toTrack);
@@ -53,8 +62,7 @@ int main()
 		}
 	}
 
-	output = bnet_commands.send_command("MODE:SWT:STOP").second;
-	std::cout << output << std::endl;
+	send_command(bnet_commands, "MODE:SWT:STOP");
 
 	bnet_commands.disconnect();
 	std::cout << "Disconnected" << std::endl;

@@ -10,6 +10,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <unistd.h>
+#include <csignal>
 
 struct coordinateStruct
 {
@@ -21,6 +22,7 @@ struct coordinateStruct
 	coordinateStruct(float az, float el, float range) : az(az), el(el), range(range) {}
 };
 
+void send_command(bnet_interface& bnet, std::string command);
 
 void startupScript(bnet_interface& bnet);
 

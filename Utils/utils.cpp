@@ -8,6 +8,13 @@
 
 
 
+void send_command(bnet_interface& bnet, std::string command)
+{
+	std::string result = bnet.send_command(command).second;
+	std::cout << result << std::endl;
+
+}
+
 void startupScript(bnet_interface& bnet) {
 	std::string command, output;
 	command = "RESET:PARAMETERS";
@@ -19,7 +26,7 @@ void startupScript(bnet_interface& bnet) {
 	command = "enable_track_logging";
 	bnet.send_command(command);
 	bnet.set_collect(TRACK_DATA, true);
-	bnet.set_logging(TRACK_DATA);
+	bnet.set_logging(true);
 	bnet.set_save(TRACK_DATA, true);
 	command = "MODE:SWT:TRACK:ELFOVMIN -20";
 	bnet.send_command(command);
@@ -65,6 +72,7 @@ int createSocket(int& sock, struct sockaddr_in& serv_addr) {
 	return 1;
 }
 
+
 coordinateStruct getCoordinates(bnet_interface& bnet) {
 	coordinateStruct coords{};
 	if (bnet.get_track().header->nTracks > 0) {
@@ -100,10 +108,12 @@ coordinateStruct getMostUAV(bnet_interface& bnet)
 	float az, el, range = 0;
 	float pUAV = 0;
 	int target = 0;
-	for (int i = 0; i < bnet.get_track().header->nTracks; i++) {
-		if (bnet.get_track().data.at(i).probabilityUAV > pUAV) {
-			pUAV = bnet.get_track().data.at(i).probabilityUAV;
-			target = i;
+	if (bnet.get_track().header->nTracks > 1) {
+		for (int i = 0; i < bnet.get_track().header->nTracks; i++) {
+			if (bnet.get_track().data.at(i).probabilityUAV > pUAV) {
+				pUAV = bnet.get_track().data.at(i).probabilityUAV;
+				target = i;
+			}
 		}
 	}
 	az = bnet.get_track().data.at(target).azest;
