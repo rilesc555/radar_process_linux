@@ -7,8 +7,6 @@
 #include <pthread.h>
 #include <vector>
 #include "utils.h"
-#include "ThreadSafeQueue.h"
-
 
 
 std::string ip = "192.168.1.2";
@@ -35,31 +33,40 @@ int main()
 	startupScript(bnet_commands);
 	std::string command;
 
-	ThreadSafeQueue<coordinateStruct> coordinateQueue;
-
-
-	while (!exitLoop) {
-		std::cout << "Enter command (\"continue\" to start tracking) : ";
+	while (true) {
+		std::cout << "Enter command (\"continue\" to start tracking): ";
 		std::getline(std::cin, command);
 		if (command == "continue" || command == "Continue" || command == "CONTINUE") {
 			std::cout << "starting tracking" << std::endl;
 			break;
 		}
-
 		send_command(bnet_commands, command);
 	}
 
-	send_command(bnet_commands, "MODE:SWT:START");
-	
+
 	// Set ctrl+c to exit loop
 	signal(SIGINT, sig_handler);
 
+	send_command(bnet_commands, "MODE:SWT:START");
+
+	std::this_thread::sleep_for(std::chrono::seconds(1));
+	std::cout << "started loop" << std::endl;
+	int loopCounter = 1;
+	unsigned char trackBuffer[8] = { 0 };
 	while (!exitLoop) {
-		if (bnet_commands.get_track().header->nTracks) {
+		if (bnet_commands.get_track().header->nTracks > 0) {
 			coordinateStruct toTrack = getMostUAV(bnet_commands);
-			unsigned char* trackBuffer = serializeCoordinates(toTrack);
-			send(sock, trackBuffer, sizeof(float) * 3, 0);
+			
+			serializeCoordinates(toTrack, trackBuffer);
+			std::cout << send(sock, trackBuffer, sizeof(float) * 3, 0);
+			std::cout << "tracking drone - " << loopCounter << std::endl;
+			std::this_thread::sleep_for(std::chrono::seconds(1));
 		}
+		else {
+			std::cout << "not tracking - " << loopCounter << std::endl;
+			std::this_thread::sleep_for(std::chrono::seconds(1));
+		}
+		loopCounter++;
 	}
 
 	send_command(bnet_commands, "MODE:SWT:STOP");
