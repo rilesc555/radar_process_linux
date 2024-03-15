@@ -17,7 +17,6 @@ struct coordinateStruct
 	float az;
 	float el;
 
-
 	coordinateStruct() : az(0.0f), el(0.0f) {}
 	coordinateStruct(float az, float el) : az(az), el(el) {}
 };

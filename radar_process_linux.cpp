@@ -34,15 +34,14 @@ int main()
 	std::string command;
 
 	while (true) {
-		std::cout << "Enter command (\"continue\" to start tracking): ";
+		std::cout << "Enter command (\"C\" to start tracking): ";
 		std::getline(std::cin, command);
-		if (command == "continue" || command == "Continue" || command == "CONTINUE") {
+		if (command == "C" || command == "c" || command == "continue" || command == "Continue" || command == "CONTINUE") {
 			std::cout << "starting tracking" << std::endl;
 			break;
 		}
 		send_command(bnet_commands, command);
 	}
-
 
 	// Set ctrl+c to exit loop
 	signal(SIGINT, sig_handler);
@@ -58,7 +57,7 @@ int main()
 			coordinateStruct toTrack = getMostUAV(bnet_commands);
 			
 			serializeCoordinates(toTrack, trackBuffer);
-			std::cout << send(sock, trackBuffer, sizeof(float) * 3, 0);
+			std::cout << send(sock, trackBuffer, sizeof(float) * 2, 0);
 			std::cout << "tracking drone - " << loopCounter << std::endl;
 			std::this_thread::sleep_for(std::chrono::seconds(1));
 		}
