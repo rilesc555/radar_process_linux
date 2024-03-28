@@ -7,8 +7,6 @@
 #include <pthread.h>
 #include <vector>
 #include "utils.h"
-#include "ThreadSafeQueue.h"
-
 
 
 std::string ip = "192.168.1.2";
@@ -16,6 +14,13 @@ unsigned short port = 23;
 std::string custom_directory = ".";
 int sock = 0;
 struct sockaddr_in serv_addr;
+sig_atomic_t exitLoop = 0;
+
+void sig_handler(int sig)
+{ 
+	exitLoop = 1; 
+	signal(SIGINT, SIG_DFL);
+}
 
 int main()
 {
@@ -26,35 +31,44 @@ int main()
 	bnet_commands.connect(ip, port, custom_directory);
     // Configures radar
 	startupScript(bnet_commands);
-	std::string command, output;
-
-	ThreadSafeQueue<coordinateStruct> coordinateQueue;
+	std::string command;
 
 	while (true) {
-		std::cout << "Enter command (\"continue\" to start tracking) : ";
+		std::cout << "Enter command (\"C\" to start tracking): ";
 		std::getline(std::cin, command);
-		if (command == "continue" || command == "Continue" || command == "CONTINUE") {
+		if (command == "C" || command == "c" || command == "continue" || command == "Continue" || command == "CONTINUE") {
 			std::cout << "starting tracking" << std::endl;
 			break;
 		}
-
-		output = bnet_commands.send_command(command).second;
-		std::cout << output << std::endl;
+		send_command(bnet_commands, command);
 	}
 
-	output = bnet_commands.send_command("MODE:SWT:START").second;
-	std::cout << output << std::endl;
+	// Set ctrl+c to exit loop
+	signal(SIGINT, sig_handler);
 
-	while (true) {
-		if (bnet_commands.get_track().header->nTracks) {
+	send_command(bnet_commands, "MODE:SWT:START");
+
+	std::this_thread::sleep_for(std::chrono::seconds(1));
+	std::cout << "started loop" << std::endl;
+	int loopCounter = 1;
+	unsigned char trackBuffer[8] = { 0 };
+	while (!exitLoop) {
+		if (bnet_commands.get_track().header->nTracks > 0) {
 			coordinateStruct toTrack = getMostUAV(bnet_commands);
-			unsigned char* trackBuffer = serializeCoordinates(toTrack);
-			send(sock, trackBuffer, sizeof(float) * 3, 0);
+			
+			serializeCoordinates(toTrack, trackBuffer);
+			std::cout << send(sock, trackBuffer, sizeof(float) * 2, 0);
+			std::cout << "tracking drone - " << loopCounter << std::endl;
+			std::this_thread::sleep_for(std::chrono::seconds(1));
 		}
+		else {
+			std::cout << "not tracking - " << loopCounter << std::endl;
+			std::this_thread::sleep_for(std::chrono::seconds(1));
+		}
+		loopCounter++;
 	}
 
-	output = bnet_commands.send_command("MODE:SWT:STOP").second;
-	std::cout << output << std::endl;
+	send_command(bnet_commands, "MODE:SWT:STOP");
 
 	bnet_commands.disconnect();
 	std::cout << "Disconnected" << std::endl;

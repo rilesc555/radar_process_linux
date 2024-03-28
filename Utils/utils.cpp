@@ -52,10 +52,13 @@ void startupScript(bnet_interface& bnet) {
 	bnet.send_command(command);
 	bnet.set_logging(true);
 	bnet.set_collect(TRACK_DATA, true);
+	bnet.set_logging(TRACK_DATA);
 	bnet.set_save(TRACK_DATA, true);
 	command = "enable_track_logging";
 	bnet.send_command(command);
 	command = "MODE:SWT:TRACK:ELFOVMIN -10";
+	bnet.send_command(command);
+	command = "MODE:SWT:TRACK:AZFOVMAX 10";
 	bnet.send_command(command);
 	command = "MODE:SWT:TRACK:AZFOVMAX 10";
 	bnet.send_command(command);
