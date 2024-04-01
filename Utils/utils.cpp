@@ -50,10 +50,12 @@ void startupScript(bnet_interface& bnet) {
 
 	command = "MODE:SWT:OPERATIONMODE 1";
 	bnet.send_command(command);
-	bnet.set_logging(true);
-	bnet.set_collect(TRACK_DATA, true);
-	bnet.set_logging(TRACK_DATA);
 	bnet.set_save(TRACK_DATA, true);
+	bnet.set_collect(TRACK_DATA, true);
+	bnet.set_logging(true);
+
+	bnet.set_logging(TRACK_DATA);
+
 	command = "enable_track_logging";
 	bnet.send_command(command);
 	command = "MODE:SWT:TRACK:ELFOVMIN -10";
@@ -112,7 +114,7 @@ coordinateStruct getCoordinates(bnet_interface& bnet) {
 	return coords;
 }
 
-void serializeCoordinates(coordinateStruct coords, unsigned char* buffer)
+void serializeCoordinates(coordinateStruct& coords, unsigned char* buffer)
 {
 	unsigned char* azimuthBytes = reinterpret_cast<unsigned char*>(&coords.az);
 	for (size_t i = 0; i < sizeof(float); ++i) {
@@ -134,6 +136,7 @@ coordinateStruct getMostUAV(bnet_interface& bnet)
 		for (int i = 0; i < bnet.get_track().header->nTracks; i++) {
 			if (bnet.get_track().data.at(i).probabilityUAV > pUAV) {
 				pUAV = bnet.get_track().data.at(i).probabilityUAV;
+
 				target = i;
 			}
 		}

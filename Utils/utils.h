@@ -27,7 +27,7 @@ void startupScript(bnet_interface& bnet);
 
 int createSocket(int& sock, struct sockaddr_in& serv_addr);
 
- void serializeCoordinates(coordinateStruct coords, unsigned char* buffer);
+void serializeCoordinates(coordinateStruct& coords, unsigned char* buffer);
 
 coordinateStruct getMostUAV(bnet_interface& bnet);
 
