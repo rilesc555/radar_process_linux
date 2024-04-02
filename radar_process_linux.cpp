@@ -54,8 +54,6 @@ int main()
 	// Set ctrl+c to exit loop
 	signal(SIGINT, sig_handler);
 
-	KalmanFilter kf(.104, .5);
-
 	send_command(bnet_commands, "MODE:SWT:START");
 
 	std::this_thread::sleep_for(std::chrono::seconds(1));

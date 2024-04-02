@@ -5,16 +5,14 @@
 
 KalmanFilter::KalmanFilter() = default;
 
-KalmanFilter::KalmanFilter(double dt, double qVal)
-: H(5,7), P(7,7), F(7,7), Q(7,7), R(5,5), dt(dt) {
+KalmanFilter::KalmanFilter(double dt)
+: H(5,7), P(7,7), Q(7, 7), R(5, 5), F(7,7), dt(dt) {
     double velVar = pow(.91, 2);
     double azVar = pow(1, 2);
     double elVar = pow(3, 2);
     m = static_cast<int>(this->H.rows());
     n = static_cast<int>(this->H.cols());
-    x_hat = Eigen::VectorXd::Zero(n);
-    y = Eigen::VectorXd::Zero(m);
-    v = Eigen::VectorXd::Zero(m);
+
     this->I = Eigen::MatrixXd::Identity(n, n);
     this->F = Eigen::MatrixXd::Zero(n, n);
     this->H << 1, 0, 0, 0, 0, 0, 0,
@@ -22,43 +20,45 @@ KalmanFilter::KalmanFilter(double dt, double qVal)
                0, 0, 1, 0, 0, 0, 0,
                0, 0, 0, 1, 0, 0, 0,
                0, 0, 0, 0, 1, 0, 0;
-    
-    this->P << 1, 0, 0, 0, 0, 0, 0,
-               0, 1, 0, 0, 0, 0, 0,
-               0, 0, 1, 0, 0, 0, 0,
-               0, 0, 0, 1, 0, 0, 0,
-               0, 0, 0, 0, 1, 0, 0,
-               0, 0, 0, 0, 0, 1, 0,
-               0, 0, 0, 0, 0, 0, 1;
 
-    this->Q << qVal, 0, 0, 0, 0, 0, 0,
-               0, qVal, 0, 0, 0, 0, 0,
-               0, 0, qVal, 0, 0, 0, 0,
-               0, 0, 0, qVal, 0, 0, 0,
-               0, 0, 0, 0, qVal, 0, 0,
-               0, 0, 0, 0, 0, qVal, 0,
-               0, 0, 0, 0, 0, 0, qVal;
-
-    R << velVar, 0, 0, 0, 0,
+    this->R << velVar, 0, 0, 0, 0,
          0, velVar, 0, 0, 0,
          0, 0, velVar, 0, 0,
          0, 0, 0, azVar, 0,
          0, 0, 0, 0, elVar;
+}
 
-    F << 1, 0, 0, 0, 0, 0, 0,
+void KalmanFilter::init(Eigen::VectorXd &x0, double &t0, double qVal) {
+    this->initialized = true;
+    this->x_hat = Eigen::VectorXd::Zero(n);
+    x_hat = x0;
+    this->t0 = t0;
+    t = t0;
+    y = Eigen::VectorXd::Zero(m);
+    
+    this->P << 1, 0, 0, 0, 0, 0, 0,
+        0, 1, 0, 0, 0, 0, 0,
+        0, 0, 1, 0, 0, 0, 0,
+        0, 0, 0, 1, 0, 0, 0,
+        0, 0, 0, 0, 1, 0, 0,
+        0, 0, 0, 0, 0, 1, 0,
+        0, 0, 0, 0, 0, 0, 1;
+
+    this->Q << qVal, 0, 0, 0, 0, 0, 0,
+        0, qVal, 0, 0, 0, 0, 0,
+        0, 0, qVal, 0, 0, 0, 0,
+        0, 0, 0, qVal, 0, 0, 0,
+        0, 0, 0, 0, qVal, 0, 0,
+        0, 0, 0, 0, 0, qVal, 0,
+        0, 0, 0, 0, 0, 0, qVal;
+
+    this->F << 1, 0, 0, 0, 0, 0, 0,
         0, 1, 0, 0, 0, 0, 0,
         0, 0, 1, 0, 0, 0, 0,
         f4_vx(x_hat, dt), 0, f4_vz(x_hat, dt), 1, 0, 0, 0,
         f5_vx(x_hat, dt), f5_vy(x_hat, dt), f5_vz(x_hat, dt), 0, 1, 0, 0,
         0, 0, 0, 0, 0, 1, 0,
         0, 0, 0, 0, 0, 0, 1;
-}
-
-void KalmanFilter::init(Eigen::VectorXd &x0, double &t0) {
-    this->initialized = true;
-    this->x_hat = x0;
-    this->t0 = t0;
-    t = t0;
 }
 
 void KalmanFilter::predict() {
