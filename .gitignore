@@ -1,5 +1,7 @@
 .vs/
 .git
+.idea
+.DS_Store
 
 out/build/
 

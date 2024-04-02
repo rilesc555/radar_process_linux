@@ -129,7 +129,7 @@ void serializeCoordinates(coordinateStruct& coords, unsigned char* buffer)
 //get coordinates of most likely UAV. Assumes there is at least one active track
 coordinateStruct getMostUAV(bnet_interface& bnet)
 {
-	float az, el = 0;
+	float vx, vy, vz, az, el = 0;
 	float pUAV = 0;
 	int target = 0;
 	if (bnet.get_track().header->nTracks > 1) {
@@ -141,10 +141,13 @@ coordinateStruct getMostUAV(bnet_interface& bnet)
 			}
 		}
 	}
+	vx = bnet.get_track().data.at(target).velxest;
+	vy = bnet.get_track().data.at(target).velyest;
+	vz = bnet.get_track().data.at(target).velzest;
 	az = bnet.get_track().data.at(target).azest;
 	el = bnet.get_track().data.at(target).elest;
 	
-	return coordinateStruct(az, el);
+	return coordinateStruct(vx, vy, vz, az, el);
 }
 
 

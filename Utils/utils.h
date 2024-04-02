@@ -14,11 +14,14 @@
 
 struct coordinateStruct
 {
+	float vx;
+	float vy;
+	float vz;
 	float az;
 	float el;
 
-	coordinateStruct() : az(0.0f), el(0.0f) {}
-	coordinateStruct(float az, float el) : az(az), el(el) {}
+	coordinateStruct() : vx(0.0f), vy(0.0f), vz(0.0f), az(0.0f), el(0.0f) {}
+	coordinateStruct(float vx, float vy, float vz, float az, float el) : vx(vx), vy(vy), vz(vz), az(az), el(el) {}
 };
 
 void send_command(bnet_interface& bnet, std::string command);

@@ -45,7 +45,7 @@ private:
 
 public:
     KalmanFilter();
-    KalmanFilter(Eigen::MatrixXd &P, Eigen::MatrixXd &Q, Eigen::MatrixXd &H, Eigen::MatrixXd &R, double &dt);
+    KalmanFilter(double dt, double qVal);
     void init(Eigen::VectorXd& x0, double& t0);
     void predict();
     void update(Eigen::VectorXd& z);
