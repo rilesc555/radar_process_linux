@@ -51,10 +51,11 @@ int main()
 		send_command(bnet_commands, command);
 	}
 
+	send_command(bnet_commands, "MODE:SWT:START");
+	
 	// Set ctrl+c to exit loop
 	signal(SIGINT, sig_handler);
-
-	send_command(bnet_commands, "MODE:SWT:START");
+	std::cout << "Press CTRL + C to stop tracking" << std::endl;
 
 	std::this_thread::sleep_for(std::chrono::seconds(1));
 

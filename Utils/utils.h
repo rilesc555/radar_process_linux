@@ -19,14 +19,18 @@ struct coordinateStruct
 	float vz;
 	float az;
 	float el;
+	int id;
+
 
 	coordinateStruct() : vx(0.0f), vy(0.0f), vz(0.0f), az(0.0f), el(0.0f) {}
-	coordinateStruct(float vx, float vy, float vz, float az, float el) : vx(vx), vy(vy), vz(vz), az(az), el(el) {}
+	coordinateStruct(float vx, float vy, float vz, float az, float el, int ID) : vx(vx), vy(vy), vz(vz), az(az), el(el), id(ID) {}
 };
 
 void send_command(bnet_interface& bnet, std::string command);
 
 void startupScript(bnet_interface& bnet);
+
+void setTime(bnet_interface& bnet);
 
 int createSocket(int& sock, struct sockaddr_in& serv_addr);
 

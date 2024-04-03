@@ -3,10 +3,8 @@
 //
 #include "KalmanFilter.h"
 
-KalmanFilter::KalmanFilter() = default;
-
-KalmanFilter::KalmanFilter(double dt)
-: H(5,7), P(7,7), Q(7, 7), R(5, 5), F(7,7), dt(dt) {
+KalmanFilter::KalmanFilter()
+: H(5,7), P(7,7), Q(7, 7), R(5, 5), F(7,7) {
     double velVar = pow(.91, 2);
     double azVar = pow(1, 2);
     double elVar = pow(3, 2);
@@ -28,8 +26,9 @@ KalmanFilter::KalmanFilter(double dt)
          0, 0, 0, 0, elVar;
 }
 
-void KalmanFilter::init(Eigen::VectorXd &x0, double &t0, double qVal) {
+void KalmanFilter::init(Eigen::VectorXd &x0, double &t0, double qVal, int currentTrack) {
     this->initialized = true;
+    this->currentTrack = currentTrack;
     this->x_hat = Eigen::VectorXd::Zero(n);
     x_hat = x0;
     this->t0 = t0;
@@ -61,11 +60,22 @@ void KalmanFilter::init(Eigen::VectorXd &x0, double &t0, double qVal) {
         0, 0, 0, 0, 0, 0, 1;
 }
 
-void KalmanFilter::predict() {
+void KalmanFilter::predict(double dt) {
     if (!initialized) {
         std::cerr << "KalmanFilter - Not initialized!" << std::endl;
         return;
     }
+
+    this->dt = dt;
+
+    this->F << 1, 0, 0, 0, 0, 0, 0,
+        0, 1, 0, 0, 0, 0, 0,
+        0, 0, 1, 0, 0, 0, 0,
+        f4_vx(x_hat, dt), 0, f4_vz(x_hat, dt), 1, 0, 0, 0,
+        f5_vx(x_hat, dt), f5_vy(x_hat, dt), f5_vz(x_hat, dt), 0, 1, 0, 0,
+        0, 0, 0, 0, 0, 1, 0,
+        0, 0, 0, 0, 0, 0, 1;
+
     x_hat = F * x_hat;
     P = F * P * F.transpose() + Q;
 

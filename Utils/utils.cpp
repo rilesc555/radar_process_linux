@@ -65,19 +65,22 @@ void setTime(bnet_interface& bnet)
 	auto now = std::chrono::system_clock::now();
 	auto unixTime = std::chrono::system_clock::to_time_t(now);
 	auto days = unixTime / 86400;
-	long long milliseconds = (unixTime % 86400) * 1000LL;
+	long milliseconds = (unixTime % 86400) * 1000L;
+	std::cout << "System time: " << days << ", " << milliseconds << std::endl;
+
 
 	std::pair<int, int> bootTime;
 	std::string token;
 	command = "SYS:TIME?";
 	output = bnet.send_command(command).second;
+	std::cout << "Time before setting: " << output;
 	std::istringstream tokenStream(output);
 	while (std::getline(tokenStream, token, ',')) {
 		bootTime.first = std::stoi(token);
 		std::getline(tokenStream, token, ',');
 		bootTime.second = std::stoi(token);
 	}
-	milliseconds -= bootTime.second;
+	milliseconds -= (bootTime.second + 5);
 	days -= bootTime.first;
 	if (milliseconds < 0) {
 		milliseconds += 86400000;
@@ -86,8 +89,7 @@ void setTime(bnet_interface& bnet)
 	command = "SYS:TIME " + std::to_string(days) + "," + std::to_string(milliseconds);
 	bnet.send_command(command);
 	output = bnet.send_command("SYS:TIME?").second;
-	std::cout << "Radar time: " << output << std::endl;
-	std::cout << "System time: " << days << ", " << milliseconds << std::endl;
+	std::cout << "Radar time: " << output;
 }
 
 

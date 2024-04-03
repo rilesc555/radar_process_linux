@@ -33,9 +33,11 @@ private:
 
 
     int m{}, n{};
+    int currentTrack{};
     double t0{}, t{}, dt{};
-
     bool initialized = false;
+
+
 
     double f4_vx(Eigen::VectorXd &x, double &t);
     double f4_vz(Eigen::VectorXd &x, double &t);
@@ -45,9 +47,8 @@ private:
 
 public:
     KalmanFilter();
-    KalmanFilter(double dt);
-    void init(Eigen::VectorXd& x0, double& t0, double qVal);
-    void predict();
+    void init(Eigen::VectorXd& x0, double& t0, double qVal, int currentTrack);
+    void predict(double dt);
     void update(Eigen::VectorXd& z);
 
     Eigen::VectorXd get_x_hat() { return x_hat; }
