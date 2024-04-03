@@ -22,10 +22,11 @@ struct coordinateStruct
 	int id;
 	//tracks the last time the UAV track was updated in milliseconds
 	long lastTime;
+	bool tracking;
 
 
-	coordinateStruct() : vx(0.0f), vy(0.0f), vz(0.0f), az(0.0f), el(0.0f), lastTime(0L) {}
-	coordinateStruct(float vx, float vy, float vz, float az, float el, int ID, long lastTime) : vx(vx), vy(vy), vz(vz), az(az), el(el), id(ID),  lastTime(lastTime) {}
+	coordinateStruct() : vx(0.0f), vy(0.0f), vz(0.0f), az(0.0f), el(0.0f), lastTime(0L), tracking(false) {}
+	coordinateStruct(float vx, float vy, float vz, float az, float el, int ID, long lastTime, bool tracking) : vx(vx), vy(vy), vz(vz), az(az), el(el), id(ID), lastTime(lastTime), tracking(tracking) {}
 };
 
 void send_command(bnet_interface& bnet, std::string command);

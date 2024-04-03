@@ -63,14 +63,19 @@ int main()
 	KalmanFilter* kf = new KalmanFilter;
 	Eigen::VectorXd x0(7);
 	Eigen::VectorXd z(5);
-	long lastTime;
+	double lastTime;
 	coordinateStruct toTrack;
 
-	int trackID;
+	int trackID = 0;
 	while (!exitLoop) {
-		if (bnet_commands.get_n_buffered(TRACK_DATA) > 0) {
+		if (bnet_commands.get_n_buffered(TRACK_DATA)) {
 			toTrack = getMostUAV(bnet_commands);
-			if (toTrack.id != trackID) {
+			if (!toTrack.tracking) {
+				std::cout << "Waiting" << std::endl;
+				std::this_thread::sleep_for(std::chrono::milliseconds(104));
+				continue;
+			}
+			else if (toTrack.id != trackID) {
 				trackID = toTrack.id;
 				lastTime = toTrack.lastTime;
 				std::cout << "Now tracking UAV " << trackID << std::endl;
@@ -82,17 +87,17 @@ int main()
 			}
 			else {
 				z << toTrack.vx, toTrack.vy, toTrack.vz, toTrack.az, toTrack.el;
-				long dt = (toTrack.lastTime - lastTime) / 1000;
+				double dt = (toTrack.lastTime - lastTime) / 1000;
 				kf->predict(dt);
 				kf->update(z);
 			}
 			
 			serializeCoordinates(toTrack, trackBuffer);
-			std::cout << send(sock, trackBuffer, sizeof(float) * 2, 0);
+			std::cout << send(sock, trackBuffer, sizeof(float) * 2, 0) << " bytes sent to gimbal" << std::endl;
 			std::this_thread::sleep_for(std::chrono::milliseconds(104));
 		}
 		else {
-			std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+			std::this_thread::sleep_for(std::chrono::milliseconds(104));
 		}
 	}
 

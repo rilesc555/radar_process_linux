@@ -138,22 +138,24 @@ void serializeCoordinates(coordinateStruct& coords, unsigned char* buffer)
 coordinateStruct getMostUAV(bnet_interface& bnet)
 {
 	float vx, vy, vz, az, el = 0;
-	int id = 0;
+	int id = -1;
 	long lastTime = 0;
 	float pUAV = 0;
 	int target = 0;
+	bool tracking = false;
 	MESAK_Track track = bnet.get_track();
 	if (track.header->nTracks == 0) {
-		return coordinateStruct(vx, vy, vz, az, el, id, lastTime);
+		return coordinateStruct(vx, vy, vz, az, el, id, lastTime, tracking);
 	}
 	else if (track.header->nTracks > 1) {
-		for (int i = 0; i < track.header->nTracks; i++) {
+		for (size_t i = 0; i < track.header->nTracks; i++) {
 			if (track.data.at(i).probabilityUAV > pUAV) {
 				pUAV = track.data.at(i).probabilityUAV;
 				target = i;
 			}
 		}
 	}
+
 	vx = track.data.at(target).velxest;
 	vz = track.data.at(target).velzest;
 	vy = track.data.at(target).velyest;
@@ -161,8 +163,9 @@ coordinateStruct getMostUAV(bnet_interface& bnet)
 	el = track.data.at(target).elest;
 	id = track.data.at(target).ID;
 	lastTime = track.data.at(target).lastAssociatedDataTime_ms;
+	tracking = true;
 	
-	return coordinateStruct(vx, vy, vz, az, el, id, lastTime);
+	return coordinateStruct(vx, vy, vz, az, el, id, lastTime, tracking);
 }
 
 
