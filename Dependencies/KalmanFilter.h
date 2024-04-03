@@ -47,7 +47,7 @@ private:
 
 public:
     KalmanFilter();
-    void init(Eigen::VectorXd& x0, double& t0, double qVal, int currentTrack);
+    void init(Eigen::VectorXd& x0, double qVal, int currentTrack);
     void predict(double dt);
     void update(Eigen::VectorXd& z);
 

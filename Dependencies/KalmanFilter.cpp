@@ -26,13 +26,11 @@ KalmanFilter::KalmanFilter()
          0, 0, 0, 0, elVar;
 }
 
-void KalmanFilter::init(Eigen::VectorXd &x0, double &t0, double qVal, int currentTrack) {
+void KalmanFilter::init(Eigen::VectorXd &x0, double qVal, int currentTrack) {
     this->initialized = true;
     this->currentTrack = currentTrack;
     this->x_hat = Eigen::VectorXd::Zero(n);
     x_hat = x0;
-    this->t0 = t0;
-    t = t0;
     y = Eigen::VectorXd::Zero(m);
     
     this->P << 1, 0, 0, 0, 0, 0, 0,
@@ -62,7 +60,7 @@ void KalmanFilter::init(Eigen::VectorXd &x0, double &t0, double qVal, int curren
 
 void KalmanFilter::predict(double dt) {
     if (!initialized) {
-        std::cerr << "KalmanFilter - Not initialized!" << std::endl;
+        std::cerr << "KalmanFilter::predict() - Not initialized!" << std::endl;
         return;
     }
 
@@ -78,8 +76,6 @@ void KalmanFilter::predict(double dt) {
 
     x_hat = F * x_hat;
     P = F * P * F.transpose() + Q;
-
-    t += dt;
 }
 
 void KalmanFilter::update(Eigen::VectorXd &z) {

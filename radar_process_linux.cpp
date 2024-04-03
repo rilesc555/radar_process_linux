@@ -35,6 +35,7 @@ int main()
 	bnet_commands.connect(ip, port, custom_directory);
     // Configures radar
 	startupScript(bnet_commands);
+	std::cout << "Buffer length: " << bnet_commands.get_buffer_length(TRACK_DATA) << std::endl;
 
 	// space to enter and preliminary commands before tracking
 	while (true) {
@@ -52,29 +53,53 @@ int main()
 	}
 
 	send_command(bnet_commands, "MODE:SWT:START");
+
+	std::this_thread::sleep_for(std::chrono::milliseconds(500));
 	
 	// Set ctrl+c to exit loop
 	signal(SIGINT, sig_handler);
 	std::cout << "Press CTRL + C to stop tracking" << std::endl;
 
-	std::this_thread::sleep_for(std::chrono::seconds(1));
+	KalmanFilter* kf = new KalmanFilter;
+	Eigen::VectorXd x0(7);
+	Eigen::VectorXd z(5);
+	long lastTime;
+	coordinateStruct toTrack;
 
+	int trackID;
 	while (!exitLoop) {
-		if (bnet_commands.get_n_buffered(TRACK_DATA)) {
-			coordinateStruct toTrack = getMostUAV(bnet_commands);
+		if (bnet_commands.get_n_buffered(TRACK_DATA) > 0) {
+			toTrack = getMostUAV(bnet_commands);
+			if (toTrack.id != trackID) {
+				trackID = toTrack.id;
+				lastTime = toTrack.lastTime;
+				std::cout << "Now tracking UAV " << trackID << std::endl;
+				x0 << toTrack.vx, toTrack.vy, toTrack.vz, toTrack.az, toTrack.el, 0, 0;
+				z << toTrack.vx, toTrack.vy, toTrack.vz, toTrack.az, toTrack.el;
+				kf->init(x0, 1, trackID);
+				kf->predict(0.104);
+				kf->update(z);
+			}
+			else {
+				z << toTrack.vx, toTrack.vy, toTrack.vz, toTrack.az, toTrack.el;
+				long dt = (toTrack.lastTime - lastTime) / 1000;
+				kf->predict(dt);
+				kf->update(z);
+			}
 			
 			serializeCoordinates(toTrack, trackBuffer);
 			std::cout << send(sock, trackBuffer, sizeof(float) * 2, 0);
 			std::this_thread::sleep_for(std::chrono::milliseconds(104));
 		}
 		else {
-			std::this_thread::sleep_for(std::chrono::milliseconds(104));
+			std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 		}
 	}
 
 	send_command(bnet_commands, "MODE:SWT:STOP");
 
 	std::cout << "Stopping tracking" << std::endl;
+
 	bnet_commands.set_save(TRACK_DATA, false);
 	bnet_commands.set_collect(TRACK_DATA, false);
 

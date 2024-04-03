@@ -92,8 +92,6 @@ void setTime(bnet_interface& bnet)
 	std::cout << "Radar time: " << output;
 }
 
-
-
 int createSocket(int& sock, struct sockaddr_in& serv_addr) {
 	if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
 		std::cout << "Socket creation error" << std::endl;
@@ -113,7 +111,6 @@ int createSocket(int& sock, struct sockaddr_in& serv_addr) {
 	std::cout << "Socket created" << std::endl;
 	return 1;
 }
-
 
 coordinateStruct getCoordinates(bnet_interface& bnet) {
 	coordinateStruct coords{};
@@ -142,25 +139,30 @@ coordinateStruct getMostUAV(bnet_interface& bnet)
 {
 	float vx, vy, vz, az, el = 0;
 	int id = 0;
+	long lastTime = 0;
 	float pUAV = 0;
 	int target = 0;
-	if (bnet.get_track().header->nTracks > 1) {
-		for (int i = 0; i < bnet.get_track().header->nTracks; i++) {
-			if (bnet.get_track().data.at(i).probabilityUAV > pUAV) {
-				pUAV = bnet.get_track().data.at(i).probabilityUAV;
-
+	MESAK_Track track = bnet.get_track();
+	if (track.header->nTracks == 0) {
+		return coordinateStruct(vx, vy, vz, az, el, id, lastTime);
+	}
+	else if (track.header->nTracks > 1) {
+		for (int i = 0; i < track.header->nTracks; i++) {
+			if (track.data.at(i).probabilityUAV > pUAV) {
+				pUAV = track.data.at(i).probabilityUAV;
 				target = i;
 			}
 		}
 	}
-	vx = bnet.get_track().data.at(target).velxest;
-	vy = bnet.get_track().data.at(target).velyest;
-	vz = bnet.get_track().data.at(target).velzest;
-	az = bnet.get_track().data.at(target).azest;
-	el = bnet.get_track().data.at(target).elest;
-	id = bnet.get_track().data.at(target).ID;
+	vx = track.data.at(target).velxest;
+	vz = track.data.at(target).velzest;
+	vy = track.data.at(target).velyest;
+	az = track.data.at(target).azest;
+	el = track.data.at(target).elest;
+	id = track.data.at(target).ID;
+	lastTime = track.data.at(target).lastAssociatedDataTime_ms;
 	
-	return coordinateStruct(vx, vy, vz, az, el, id);
+	return coordinateStruct(vx, vy, vz, az, el, id, lastTime);
 }
 
 
