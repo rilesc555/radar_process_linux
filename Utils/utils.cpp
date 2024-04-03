@@ -20,33 +20,7 @@ void startupScript(bnet_interface& bnet) {
 	command = "RESET:PARAMETERS";
 	bnet.send_command(command);
 
-
-
-	command = "SYS:TIME 0,0";
-	bnet.send_command(command);
-
-	auto now = std::chrono::system_clock::now();
-	auto unixTime = std::chrono::system_clock::to_time_t(now);
-	auto days = unixTime / 86400;
-	long long milliseconds = (unixTime % 86400) * 1000LL;
-
-	std::pair<int, int> bootTime = { days, milliseconds };
-	std::string token;
-	std::istringstream tokenStream(output);
-	command = "SYS:TIME?";
-    output = bnet.send_command(command).second;
-	while (std::getline(tokenStream, token, ',')) {
-		bootTime.first = std::stoi(token);
-		std::getline(tokenStream, token, ',');
-		bootTime.second = std::stoi(token);
-	}
-	milliseconds -= bootTime.second;
-	days -= bootTime.first;
-	if (milliseconds < 0) {
-		milliseconds += 86400000;
-		days--;
-	}
-	command = "SYS:TIME " + std::to_string(days) + "," + std::to_string(milliseconds);
+	setTime(bnet);
 
 	command = "MODE:SWT:OPERATIONMODE 1";
 	bnet.send_command(command);
@@ -79,6 +53,41 @@ void startupScript(bnet_interface& bnet) {
 	command = "AGLMASK:ENABLE eldorado TRUE";
 	bnet.send_command(command);
 	std::cout << "Radar initialized" << std::endl;
+}
+
+void setTime(bnet_interface& bnet)
+{
+	std::string command, output;
+
+	command = "SYS:TIME 0,0";
+	bnet.send_command(command);
+
+	auto now = std::chrono::system_clock::now();
+	auto unixTime = std::chrono::system_clock::to_time_t(now);
+	auto days = unixTime / 86400;
+	long long milliseconds = (unixTime % 86400) * 1000LL;
+
+	std::pair<int, int> bootTime;
+	std::string token;
+	command = "SYS:TIME?";
+	output = bnet.send_command(command).second;
+	std::istringstream tokenStream(output);
+	while (std::getline(tokenStream, token, ',')) {
+		bootTime.first = std::stoi(token);
+		std::getline(tokenStream, token, ',');
+		bootTime.second = std::stoi(token);
+	}
+	milliseconds -= bootTime.second;
+	days -= bootTime.first;
+	if (milliseconds < 0) {
+		milliseconds += 86400000;
+		days--;
+	}
+	command = "SYS:TIME " + std::to_string(days) + "," + std::to_string(milliseconds);
+	bnet.send_command(command);
+	output = bnet.send_command("SYS:TIME?").second;
+	std::cout << "Radar time: " << output << std::endl;
+	std::cout << "System time: " << days << ", " << milliseconds << std::endl;
 }
 
 
@@ -130,6 +139,7 @@ void serializeCoordinates(coordinateStruct& coords, unsigned char* buffer)
 coordinateStruct getMostUAV(bnet_interface& bnet)
 {
 	float vx, vy, vz, az, el = 0;
+	int id = 0;
 	float pUAV = 0;
 	int target = 0;
 	if (bnet.get_track().header->nTracks > 1) {
@@ -146,8 +156,9 @@ coordinateStruct getMostUAV(bnet_interface& bnet)
 	vz = bnet.get_track().data.at(target).velzest;
 	az = bnet.get_track().data.at(target).azest;
 	el = bnet.get_track().data.at(target).elest;
+	id = bnet.get_track().data.at(target).ID;
 	
-	return coordinateStruct(vx, vy, vz, az, el);
+	return coordinateStruct(vx, vy, vz, az, el, id);
 }
 
 
