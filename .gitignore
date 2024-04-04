@@ -5,6 +5,8 @@
 
 out/build/
 
+/Dependencies/bnet_api
+
 /build
 
 cmake-build-release/
