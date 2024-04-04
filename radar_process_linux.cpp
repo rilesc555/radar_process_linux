@@ -54,7 +54,10 @@ int main()
 	}
 
 	std::ofstream outfile;
-	std::string filename = "Kalman" + getTimeString();
+	std::string filename;
+	std::cout << "Enter test name: " << std::endl;
+	std::cin >> filename;
+	filename += getTimeString();
 	outfile.open(filename);
 	outfile << "time,rvx,rvy,rvz,raz,rel,kvx,kvy,kvz,kaz,kel" << std::endl;
 

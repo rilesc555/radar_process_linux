@@ -68,7 +68,6 @@ void setTime(bnet_interface& bnet)
 	long milliseconds = (unixTime % 86400) * 1000L;
 	std::cout << "System time: " << days << ", " << milliseconds << std::endl;
 
-
 	std::pair<int, int> bootTime;
 	std::string token;
 	command = "SYS:TIME?";
@@ -112,6 +111,16 @@ int createSocket(int& sock, struct sockaddr_in& serv_addr) {
 	return 1;
 }
 
+std::string getTimeString()
+{
+	std::stringstream ss;
+	time_t now = time(0);
+	tm* pnow = localtime(&now);
+	ss << (pnow->tm_year + 1900) << "-" << (pnow->tm_mon + 1) << "-" << pnow->tm_mday << "T" << pnow->tm_hour << pnow->tm_min << pnow->tm_sec;
+	
+	return ss.str();
+}
+
 coordinateStruct getCoordinates(bnet_interface& bnet) {
 	coordinateStruct coords{};
 	if (bnet.get_track().header->nTracks > 0) {
@@ -134,7 +143,8 @@ void serializeCoordinates(coordinateStruct& coords, unsigned char* buffer)
 	}
 }
 
-//get coordinates of most likely UAV. Assumes there is at least one active track
+//get coordinates of most likely UAV. Assumes there is at least one buffered track packet (could be empty or have data)
+//
 coordinateStruct getMostUAV(bnet_interface& bnet)
 {
 	float vx, vy, vz, az, el = 0;

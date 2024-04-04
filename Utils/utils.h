@@ -11,6 +11,7 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <csignal>
+#include <ctime>
 
 struct coordinateStruct
 {
@@ -36,6 +37,8 @@ void startupScript(bnet_interface& bnet);
 void setTime(bnet_interface& bnet);
 
 int createSocket(int& sock, struct sockaddr_in& serv_addr);
+
+std::string getTimeString();
 
 void serializeCoordinates(coordinateStruct& coords, unsigned char* buffer);
 

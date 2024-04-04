@@ -30,14 +30,10 @@ private:
 
     //x_hat = [vx, vy, vz, az, el, azdot, eldot]
 
-
-
     int m{}, n{};
     int currentTrack{};
     double t0{}, t{}, dt{};
     bool initialized = false;
-
-
 
     double f4_vx(Eigen::VectorXd &x, double &t);
     double f4_vz(Eigen::VectorXd &x, double &t);
@@ -53,7 +49,6 @@ public:
 
     Eigen::VectorXd get_x_hat() { return x_hat; }
 };
-
 
 #endif //KALMANFILTER_H
 
