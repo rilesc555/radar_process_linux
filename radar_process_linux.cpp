@@ -6,8 +6,10 @@
 #include <string> 
 #include <pthread.h>
 #include <vector>
+#include <fstream>
 #include "utils.h"
 #include "KalmanFilter.h"
+
 
 
 
@@ -35,7 +37,6 @@ int main()
 	bnet_commands.connect(ip, port, custom_directory);
     // Configures radar
 	startupScript(bnet_commands);
-	std::cout << "Buffer length: " << bnet_commands.get_buffer_length(TRACK_DATA) << std::endl;
 
 	// space to enter and preliminary commands before tracking
 	while (true) {
@@ -52,6 +53,11 @@ int main()
 		send_command(bnet_commands, command);
 	}
 
+	std::ofstream outfile;
+	std::string filename = "Kalman" + getTimeString();
+	outfile.open(filename);
+	outfile << "time,rvx,rvy,rvz,raz,rel,kvx,kvy,kvz,kaz,kel" << std::endl;
+
 	send_command(bnet_commands, "MODE:SWT:START");
 
 	std::this_thread::sleep_for(std::chrono::milliseconds(500));
@@ -67,6 +73,7 @@ int main()
 	coordinateStruct toTrack;
 
 	int trackID = 0;
+
 	while (!exitLoop) {
 		if (bnet_commands.get_n_buffered(TRACK_DATA)) {
 			toTrack = getMostUAV(bnet_commands);
@@ -94,6 +101,8 @@ int main()
 			
 			serializeCoordinates(toTrack, trackBuffer);
 			std::cout << send(sock, trackBuffer, sizeof(float) * 2, 0) << " bytes sent to gimbal" << std::endl;
+			outfile << toTrack.lastTime << "," << toTrack.vx << "," << toTrack.vy << "," << toTrack.vz << "," << toTrack.az << "," << toTrack.el;
+			outfile << kf->get_x_hat()[0] << "," << kf->get_x_hat()[1] << "," << kf->get_x_hat()[2] << "," << kf->get_x_hat()[3] << "," << kf->get_x_hat()[4] << std::endl;
 			std::this_thread::sleep_for(std::chrono::milliseconds(104));
 		}
 		else {
