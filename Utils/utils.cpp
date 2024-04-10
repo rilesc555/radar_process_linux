@@ -9,12 +9,14 @@
 #include <string>
 #include <sstream>
 
+//sends a command to a radar and prints the result. In case you're into that sort of thing
 void send_command(bnet_interface& bnet, std::string command)
 {
 	std::string result = bnet.send_command(command).second;
 	std::cout << result << std::endl;
 }
 
+//sets a bunch of parameters on the radar. Edit this to change masking, etc.
 void startupScript(bnet_interface& bnet) {
 	std::string command, output;
 	command = "RESET:PARAMETERS";
@@ -26,15 +28,8 @@ void startupScript(bnet_interface& bnet) {
 	bnet.send_command(command);
 	bnet.set_save(TRACK_DATA, true);
 	bnet.set_collect(TRACK_DATA, true);
-	bnet.set_logging(true);
 
-	bnet.set_logging(TRACK_DATA);
-
-	command = "enable_track_logging";
-	bnet.send_command(command);
 	command = "MODE:SWT:TRACK:ELFOVMIN -10";
-	bnet.send_command(command);
-	command = "MODE:SWT:TRACK:AZFOVMAX 10";
 	bnet.send_command(command);
 	command = "MODE:SWT:TRACK:AZFOVMAX 10";
 	bnet.send_command(command);
@@ -55,6 +50,7 @@ void startupScript(bnet_interface& bnet) {
 	std::cout << "Radar initialized" << std::endl;
 }
 
+//sets the time of the radar to match the system time
 void setTime(bnet_interface& bnet)
 {
 	std::string command, output;
@@ -91,6 +87,7 @@ void setTime(bnet_interface& bnet)
 	std::cout << "Radar time: " << output;
 }
 
+//creates a socket and connects to the pi
 int createSocket(int& sock, struct sockaddr_in& serv_addr) {
 	if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
 		std::cout << "Socket creation error" << std::endl;
@@ -111,6 +108,7 @@ int createSocket(int& sock, struct sockaddr_in& serv_addr) {
 	return 1;
 }
 
+//gets the current system time and returns it in YYYY-MM-DDTHHMMSS format
 std::string getTimeString()
 {
 	std::stringstream ss;
@@ -131,6 +129,7 @@ coordinateStruct getCoordinates(bnet_interface& bnet) {
 	return coords;
 }
 
+//takes a coordinate structure and puts azimuth and elevation in a buffer for sending over socket
 void serializeCoordinates(coordinateStruct& coords, unsigned char* buffer)
 {
 	unsigned char* azimuthBytes = reinterpret_cast<unsigned char*>(&coords.az);
@@ -143,8 +142,7 @@ void serializeCoordinates(coordinateStruct& coords, unsigned char* buffer)
 	}
 }
 
-//get coordinates of most likely UAV. Assumes there is at least one buffered track packet (could be empty or have data)
-//
+//get coordinates of most likely UAV. Assumes there is at least one buffered track packet (could be empty or have data). Returns coordinate struct of that
 coordinateStruct getMostUAV(bnet_interface& bnet)
 {
 	float vx, vy, vz, az, el = 0;

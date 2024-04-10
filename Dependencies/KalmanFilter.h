@@ -25,16 +25,16 @@ private:
     // Identity matrix.
     Eigen::MatrixXd I;
 
-    //x_hat is the state vector. y is the error vector.
+    //x_hat is the state vector. y is the error vector. x_hat = [vx, vy, vz, az, el, azdot, eldot]
     Eigen::VectorXd x_hat, y;
 
-    //x_hat = [vx, vy, vz, az, el, azdot, eldot]
-
+    //random variables used for things
     int m{}, n{};
     int currentTrack{};
     double t0{}, t{}, dt{};
     bool initialized = false;
 
+    //functions that are used to update F matrix every cycle
     double f4_vx(Eigen::VectorXd &x, double &t);
     double f4_vz(Eigen::VectorXd &x, double &t);
     double f5_vx(Eigen::VectorXd &x, double &t);
@@ -43,10 +43,15 @@ private:
 
 public:
     KalmanFilter();
+    
+    //starts up the filter with starting values, a q Value, and the id of the object being tracked
     void init(Eigen::VectorXd& x0, double qVal, int currentTrack);
+    
+    //these are the two parts of the filter--predict and then update
     void predict(double dt);
     void update(Eigen::VectorXd& z);
 
+    //accesses the current state vector
     Eigen::VectorXd get_x_hat() { return x_hat; }
 };
 

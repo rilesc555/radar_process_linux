@@ -12,7 +12,6 @@
 
 
 //!!!BEFORE RUNNING THIS MAKE SURE YOU'VE SYNCED THE LAPTOP WITH GPS TIME!!!
-
 //variables for connecting to the radar, the raspberry pi, and setting up the buffer that'll send the data to rpi
 std::string ip = "192.168.1.2";
 unsigned short port = 23;
@@ -22,6 +21,7 @@ struct sockaddr_in serv_addr;
 sig_atomic_t exitLoop = 0;
 std::string command;
 unsigned char trackBuffer[8] = { 0 };
+std::mutex mutex;
 
 //this will be used to let CTRL+C stop the main tracking loop without exiting the program
 void sig_handler(int sig)
@@ -38,7 +38,7 @@ int main()
 	bnet_interface bnet_commands;
 	bnet_commands.connect(ip, port, custom_directory);
 	startupScript(bnet_commands);
-
+	
 	// loop to enter any preliminary commands before tracking. C or c will start to the main tracking loop
 	while (true) {
 		std::cout << "Enter command (\"C\" to start tracking): ";
@@ -59,16 +59,15 @@ int main()
 	std::string filename;
 	std::cout << "Enter test name: " << std::endl;
 	std::cin >> filename;
-	filename += getTimeString();
+	filename += getTimeString() + ".csv";
 	outfile.open(filename);
 	outfile << "time,rvx,rvy,rvz,raz,rel,kvx,kvy,kvz,kaz,kel" << std::endl;
 
 	//start tracking and give it a second to pick up a track
 	send_command(bnet_commands, "MODE:SWT:START");
-	std::this_thread::sleep_for(std::chrono::milliseconds(500));
-	
-	//Set preliminary stuff: set signal ending the tracking loop, create kalman filter object,
-	//and some other random variables it'll use
+
+	/*Set preliminary stuff: set signal ending the tracking loop, create kalman filter object,
+	and some other random variables it'll use*/
 	signal(SIGINT, sig_handler);
 	std::cout << "Press CTRL + C to stop tracking" << std::endl;
 	KalmanFilter* kf = new KalmanFilter;
@@ -78,21 +77,25 @@ int main()
 	coordinateStruct toTrack;
 	int trackID = 0;
 
-	//main tracking loop. CTRL+C will exit this when done. Sends radar data to rpi, and also logs both radar data
-	//and Kalman filtered data
+	/*main tracking loop. CTRL+C will exit this when done. Sends radar data to rpi, and also logs both radar data
+	and Kalman filtered data*/
 	while (!exitLoop) {
+		mutex.lock();
+		size_t processData = bnet_commands.get_n_buffered(TRACK_DATA);
 		//if there's a packet in the buffer, do this:
-		if (bnet_commands.get_n_buffered(TRACK_DATA)) {
-			toTrack = getMostUAV(bnet_commands);
+		if (processData) {
 			
-			//if the packet grabbed is an empty packet with no track, pause for 104 milliseconds and check for another packet
+			toTrack = getMostUAV(bnet_commands);
+			mutex.unlock();
+
+			//if the packet grabbed is an empty packet with no track, pause for 20 milliseconds and check for another packet
 			if (!toTrack.tracking) {
 				std::cout << "Waiting" << std::endl;
-				std::this_thread::sleep_for(std::chrono::milliseconds(104));
+				std::this_thread::sleep_for(std::chrono::milliseconds(20));
 				continue;
 			}
-			//if the packet has at least on track, and the most probable track in the packet is not the current track, re-initialize the kalman filter 
-			//and give it a 104 millisecond update
+			/*if the packet has at least on track, and the most probable track in the packet is not the current track, re-initialize the kalman filter 
+			and give it a 20 millisecond update*/
 			else if (toTrack.id != trackID) {
 				trackID = toTrack.id;
 				lastTime = toTrack.lastTime;
@@ -104,13 +107,14 @@ int main()
 				kf->update(z);
 			}
 
-			//if the packet grabbed is tracking the same object as before, update the kalman filter based on difference between last recorded track time
-			//and the previously last recorded track time
+			/*if the packet grabbed is tracking the same object as before, update the kalman filter based on difference between last recorded track time
+			and the previously last recorded track time*/
 			else {
 				z << toTrack.vx, toTrack.vy, toTrack.vz, toTrack.az, toTrack.el;
 				double dt = (toTrack.lastTime - lastTime) / 1000;
 				kf->predict(dt);
 				kf->update(z);
+				lastTime = toTrack.lastTime;
 			}
 			
 			//send radar's idea of coordinates to rpi
@@ -118,17 +122,18 @@ int main()
 			std::cout << send(sock, trackBuffer, sizeof(float) * 2, 0) << " bytes sent to gimbal" << std::endl;
 			
 			//print radar and kalman coordinates to csv
-			outfile << toTrack.lastTime << "," << toTrack.vx << "," << toTrack.vy << "," << toTrack.vz << "," << toTrack.az << "," << toTrack.el;
+			outfile << toTrack.lastTime << "," << toTrack.vx << "," << toTrack.vy << "," << toTrack.vz << "," << toTrack.az << "," << toTrack.el << ",";
 			outfile << kf->get_x_hat()[0] << "," << kf->get_x_hat()[1] << "," << kf->get_x_hat()[2] << "," << kf->get_x_hat()[3] << "," << kf->get_x_hat()[4] << std::endl;
-			std::this_thread::sleep_for(std::chrono::milliseconds(104));
+			std::this_thread::sleep_for(std::chrono::milliseconds(20));
 		}
 		//if there's no packet in the buffer, wait a moment and check for another packet
 		else {
-			std::this_thread::sleep_for(std::chrono::milliseconds(104));
+			mutex.unlock();
+			std::this_thread::sleep_for(std::chrono::milliseconds(20));
 		}
 	}
 	
-	//stop tracking, stop logging, and disconnect from the radar
+
 	send_command(bnet_commands, "MODE:SWT:STOP");
 	std::cout << "Stopping tracking" << std::endl;
 	bnet_commands.set_save(TRACK_DATA, false);
@@ -136,6 +141,7 @@ int main()
 	bnet_commands.disconnect();
 	std::cout << "Disconnected" << std::endl;
 	bnet_commands.~bnet_interface();
+	outfile.close();
 
 	//close the socket with the rpi
 	close(sock);

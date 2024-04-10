@@ -13,6 +13,7 @@
 #include <csignal>
 #include <ctime>
 
+//the structure that encapsulates essential data: time since last tracked, id, position and velocity
 struct coordinateStruct
 {
 	float vx;
