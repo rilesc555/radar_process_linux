@@ -37,6 +37,8 @@ void startupScript(bnet_interface& bnet);
 
 void setTime(bnet_interface& bnet);
 
+void setMaxRangeMask(bnet_interface &bnet, int maxRange);
+
 int createSocket(int& sock, struct sockaddr_in& serv_addr);
 
 std::string getTimeString();

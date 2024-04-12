@@ -59,7 +59,7 @@ void KalmanFilter::init(Eigen::VectorXd &x0, double qVal, int currentTrack) {
 }
 
 void KalmanFilter::predict(double dt) {
-    if (!initialized) {
+    if (!this->initialized) {
         std::cerr << "KalmanFilter::predict() - Not initialized!" << std::endl;
         return;
     }
@@ -79,7 +79,7 @@ void KalmanFilter::predict(double dt) {
 }
 
 void KalmanFilter::update(Eigen::VectorXd &z) {
-    if (!initialized ) {
+    if (!this->initialized ) {
         std::cerr << "KalmanFilter::update() - Not initialized!" << std::endl;
         return;
     }
