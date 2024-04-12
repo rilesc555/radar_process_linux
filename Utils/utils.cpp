@@ -28,20 +28,16 @@ void startupScript(bnet_interface& bnet) {
 	bnet.send_command(command);
 	bnet.set_save(TRACK_DATA, true);
 	bnet.set_collect(TRACK_DATA, true);
-	bnet.set_save(RVMAP_DATA, true);
-	bnet.set_collect(RVMAP_DATA, true);
-	bnet.set_save(STATUS_DATA, true);
-	bnet.set_collect(STATUS_DATA, true);
-	bnet.set_logging(true);
-
 
 	command = "MODE:SWT:TRACK:ELFOVMIN -10";
+	bnet.send_command(command);
+	command = "MODE:SWT:TRACK:AZFOVMAX 10";
 	bnet.send_command(command);
 	command = "RSP:RCSMASK:MAXRCS 10";
 	bnet.send_command(command);
 	command = "PLATFORM:STATE:ORIENTATION eldorado 0, 20, 0";
 	bnet.send_command(command);
-	command = "PLATFORM:STATE:ELEVATIONAGL eldorado 0";
+	command = "PLATFORM:STATE:ELEVATIONAGL eldorado 2";
 	bnet.send_command(command);
 	command = "RANGE:MASK eldorado 5,131,134,0,31";
 	bnet.send_command(command);
@@ -55,7 +51,7 @@ void startupScript(bnet_interface& bnet) {
 }
 
 //sets the time of the radar to match the system time
-void setTime(bnet_interface &bnet)
+void setTime(bnet_interface& bnet)
 {
 	std::string command, output;
 
@@ -91,37 +87,6 @@ void setTime(bnet_interface &bnet)
 	std::cout << "Radar time: " << output;
 }
 
-void setMaxRangeMask(bnet_interface& bnet, int maxRange)
-{
-	send_command(bnet, "MODE:SWT:START");
-	std::this_thread::sleep_for(std::chrono::milliseconds(200));
-	int range0;
-	float dR;
-	while (true) {
-		if (bnet.get_n_buffered(RVMAP_DATA) > 0) {
-			auto rvmap = bnet.get_rvmap();
-			range0 = rvmap.header->zero_range_bin;
-			dR = rvmap.header->dR;
-			std::cout << "Zero range bin: " << range0 << std::endl;
-			std::cout << "Range Resolution: " << dR << std::endl;
-			break;
-		}
-		else {
-			std::this_thread::sleep_for(std::chrono::milliseconds(200));
-			std::cout << "Waiting for RVMap data" << std::endl;
-		}
-	}
-	send_command(bnet, "MODE:SWT:STOP");
-	bnet.set_save(RVMAP_DATA, false);
-	bnet.set_collect(RVMAP_DATA, false);
-	auto maxRangeToBlock = (maxRange / dR) + range0;
-	std::ostringstream ss;
-	ss << maxRangeToBlock;
-	std::string maxRangeBin(ss.str());
-	std::string command = "RANGE:MASK eldorado 0," + maxRangeBin + ",2047,0,31";
-	send_command(bnet, command);
-}
-
 //creates a socket and connects to the pi
 int createSocket(int& sock, struct sockaddr_in& serv_addr) {
 	if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
@@ -136,7 +101,7 @@ int createSocket(int& sock, struct sockaddr_in& serv_addr) {
 		return -1;
 	}
 	if (connect(sock, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0) {
-		std::cout << "Connection to Pi failed" << std::endl;
+		std::cout << "Connection failed" << std::endl;
 		return -1;
 	}
 	std::cout << "Socket created" << std::endl;
@@ -150,6 +115,7 @@ std::string getTimeString()
 	time_t now = time(0);
 	tm* pnow = localtime(&now);
 	ss << (pnow->tm_year + 1900) << "-" << (pnow->tm_mon + 1) << "-" << pnow->tm_mday << "T" << pnow->tm_hour << pnow->tm_min << pnow->tm_sec;
+	
 	return ss.str();
 }
 

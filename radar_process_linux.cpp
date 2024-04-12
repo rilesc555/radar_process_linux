@@ -54,8 +54,6 @@ int main()
 		send_command(bnet_commands, command);
 	}
 
-	//get range0 and range resolution for masking
-	//setMaxRangeMask(bnet_commands, 500);
 	//set up the csv file for logging
 	std::ofstream outfile;
 	std::string filename;
@@ -64,6 +62,9 @@ int main()
 	filename += getTimeString() + ".csv";
 	outfile.open(filename);
 	outfile << "time,rvx,rvy,rvz,raz,rel,kvx,kvy,kvz,kaz,kel" << std::endl;
+
+	//start tracking and give it a second to pick up a track
+	send_command(bnet_commands, "MODE:SWT:START");
 
 	/*Set preliminary stuff: set signal ending the tracking loop, create kalman filter object,
 	and some other random variables it'll use*/
@@ -74,30 +75,27 @@ int main()
 	Eigen::VectorXd z(5);
 	double lastTime;
 	coordinateStruct toTrack;
-	int trackID = -1;
-
-	//start tracking and give it a second to pick up a track
-	send_command(bnet_commands, "MODE:SWT:START");
+	int trackID = 0;
 
 	/*main tracking loop. CTRL+C will exit this when done. Sends radar data to rpi, and also logs both radar data
 	and Kalman filtered data*/
 	while (!exitLoop) {
-		//mutex.lock();
+		mutex.lock();
 		size_t processData = bnet_commands.get_n_buffered(TRACK_DATA);
 		//if there's a packet in the buffer, do this:
-		if (processData > 0) {
+		if (processData) {
 			
 			toTrack = getMostUAV(bnet_commands);
-			//mutex.unlock();
+			mutex.unlock();
 
 			//if the packet grabbed is an empty packet with no track, pause for 20 milliseconds and check for another packet
 			if (!toTrack.tracking) {
 				std::cout << "Waiting" << std::endl;
-				std::this_thread::sleep_for(std::chrono::milliseconds(50));
+				std::this_thread::sleep_for(std::chrono::milliseconds(20));
 				continue;
 			}
 			/*if the packet has at least on track, and the most probable track in the packet is not the current track, re-initialize the kalman filter 
-			and give it a 104 millisecond update*/
+			and give it a 20 millisecond update*/
 			else if (toTrack.id != trackID) {
 				trackID = toTrack.id;
 				lastTime = toTrack.lastTime;
@@ -126,11 +124,11 @@ int main()
 			//print radar and kalman coordinates to csv
 			outfile << toTrack.lastTime << "," << toTrack.vx << "," << toTrack.vy << "," << toTrack.vz << "," << toTrack.az << "," << toTrack.el << ",";
 			outfile << kf->get_x_hat()[0] << "," << kf->get_x_hat()[1] << "," << kf->get_x_hat()[2] << "," << kf->get_x_hat()[3] << "," << kf->get_x_hat()[4] << std::endl;
-			std::this_thread::sleep_for(std::chrono::milliseconds(50));
+			std::this_thread::sleep_for(std::chrono::milliseconds(20));
 		}
 		//if there's no packet in the buffer, wait a moment and check for another packet
 		else {
-			//mutex.unlock();
+			mutex.unlock();
 			std::this_thread::sleep_for(std::chrono::milliseconds(20));
 		}
 	}
