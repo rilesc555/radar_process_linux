@@ -126,6 +126,7 @@ int main()
 			if (socketCreated == 1) {
 				std::cout << send(sock, trackBuffer, sizeof(float) * 2, 0) << " bytes sent to gimbal" << std::endl;
 			}
+			
 			//print radar and kalman coordinates to csv
 			outfile << toTrack.lastTime << "," << toTrack.vx << "," << toTrack.vy << "," << toTrack.vz << "," << toTrack.az << "," << toTrack.el << "," << toTrack.range << ",";
 			outfile << kf->get_x_hat()[0] << "," << kf->get_x_hat()[1] << "," << kf->get_x_hat()[2] << "," << kf->get_x_hat()[3] << "," << kf->get_x_hat()[4] << std::endl;
