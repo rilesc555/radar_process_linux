@@ -22,7 +22,6 @@ struct sockaddr_in serv_addr;
 sig_atomic_t exitLoop = 0;
 std::string command;
 unsigned char trackBuffer[8] = { 0 };
-int heading;
 
 //this will be used to let CTRL+C stop the main tracking loop without exiting the program
 void sig_handler(int sig)
@@ -34,10 +33,11 @@ void sig_handler(int sig)
 int main()
 {
 	//create the socket to the raspberry pi (rpi), create a bnet object and connect to radar, and issue initial startup script
-	int socketCreated = createSocket(sock, serv_addr);
+	createSocket(sock, serv_addr);
 	std::cout << "Let's track some bad guys\n" << std::endl;
 	bnet_interface bnet_commands;
 	bnet_commands.connect(ip, port, custom_directory);
+	startupScript(bnet_commands);
 
 	// loop to enter any preliminary commands before tracking. C or c will start to the main tracking loop
 	while (true) {
@@ -53,7 +53,6 @@ int main()
 		}
 		send_command(bnet_commands, command);
 	}
-	std::cout << "got through startup" << std::endl;
 
 	//set up the csv file for logging
 	std::ofstream outfile;
@@ -62,7 +61,7 @@ int main()
 	std::cin >> filename;
 	filename += getTimeString();
 	outfile.open(filename);
-	outfile << "time,rvx,rvy,rvz,raz,rel,rrange,kvx,kvy,kvz,kaz,kel" << std::endl;
+	outfile << "time,rvx,rvy,rvz,raz,rel,kvx,kvy,kvz,kaz,kel" << std::endl;
 
 	//start tracking and give it a second to pick up a track
 	send_command(bnet_commands, "MODE:SWT:START");
@@ -77,26 +76,23 @@ int main()
 	Eigen::VectorXd z(5);
 	double lastTime;
 	coordinateStruct toTrack;
-	int trackID = -1;
-	int bufferedTracks =-1;
+	int trackID = 0;
 
 	//main tracking loop. CTRL+C will exit this when done. Sends radar data to rpi, and also logs both radar data
 	//and Kalman filtered data
 	while (!exitLoop) {
-		bufferedTracks = bnet_commands.get_n_buffered(TRACK_DATA);
 		//if there's a packet in the buffer, do this:
-		if (bufferedTracks > 0) {
+		if (bnet_commands.get_n_buffered(TRACK_DATA)) {
 			toTrack = getMostUAV(bnet_commands);
 			
-			//if the packet grabbed is an empty packet with no track, pause for 50 milliseconds and check for another packet
+			//if the packet grabbed is an empty packet with no track, pause for 104 milliseconds and check for another packet
 			if (!toTrack.tracking) {
-				std::cout << "No Current Tracks" << std::endl;
-				std::this_thread::sleep_for(std::chrono::milliseconds(100));
+				std::cout << "Waiting" << std::endl;
+				std::this_thread::sleep_for(std::chrono::milliseconds(104));
 				continue;
 			}
-
 			//if the packet has at least on track, and the most probable track in the packet is not the current track, re-initialize the kalman filter 
-			//and give it a 50 millisecond update
+			//and give it a 104 millisecond update
 			else if (toTrack.id != trackID) {
 				trackID = toTrack.id;
 				lastTime = toTrack.lastTime;
@@ -104,36 +100,31 @@ int main()
 				x0 << toTrack.vx, toTrack.vy, toTrack.vz, toTrack.az, toTrack.el, 0, 0;
 				z << toTrack.vx, toTrack.vy, toTrack.vz, toTrack.az, toTrack.el;
 				kf->init(x0, 1, trackID);
-				kf->predict(.05);
+				kf->predict(0.104);
 				kf->update(z);
-				std::cout << "kalman updated" << std::endl;
 			}
+
 			//if the packet grabbed is tracking the same object as before, update the kalman filter based on difference between last recorded track time
 			//and the previously last recorded track time
-			else if (toTrack.id == trackID) {
-				std::cout << "still tracking " << trackID << std::endl;
+			else {
 				z << toTrack.vx, toTrack.vy, toTrack.vz, toTrack.az, toTrack.el;
 				double dt = (toTrack.lastTime - lastTime) / 1000;
 				kf->predict(dt);
 				kf->update(z);
 			}
 			
-			//std::cout << "Serializing coordinates" << std::endl;
 			//send radar's idea of coordinates to rpi
 			serializeCoordinates(toTrack, trackBuffer);
-			//std::cout << "Coordinates serialized" << std::endl;
-			if (socketCreated == 1) {
-				std::cout << send(sock, trackBuffer, sizeof(float) * 2, 0) << " bytes sent to gimbal" << std::endl;
-			}
+			std::cout << send(sock, trackBuffer, sizeof(float) * 2, 0) << " bytes sent to gimbal" << std::endl;
+			
 			//print radar and kalman coordinates to csv
-			outfile << toTrack.lastTime << "," << toTrack.vx << "," << toTrack.vy << "," << toTrack.vz << "," << toTrack.az << "," << toTrack.el << "," << toTrack.range << ",";
+			outfile << toTrack.lastTime << "," << toTrack.vx << "," << toTrack.vy << "," << toTrack.vz << "," << toTrack.az << "," << toTrack.el;
 			outfile << kf->get_x_hat()[0] << "," << kf->get_x_hat()[1] << "," << kf->get_x_hat()[2] << "," << kf->get_x_hat()[3] << "," << kf->get_x_hat()[4] << std::endl;
-			std::this_thread::sleep_for(std::chrono::milliseconds(50));
+			std::this_thread::sleep_for(std::chrono::milliseconds(104));
 		}
 		//if there's no packet in the buffer, wait a moment and check for another packet
 		else {
-			std::cout << "Nothing in the buffer" << std::endl;
-			std::this_thread::sleep_for(std::chrono::milliseconds(95));
+			std::this_thread::sleep_for(std::chrono::milliseconds(104));
 		}
 	}
 	
