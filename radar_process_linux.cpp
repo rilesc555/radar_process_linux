@@ -78,7 +78,7 @@ int main()
 	double lastTime;
 	coordinateStruct toTrack;
 	int trackID = -1;
-	int bufferedTracks =-1;
+	int bufferedTracks = 0;
 
 	//main tracking loop. CTRL+C will exit this when done. Sends radar data to rpi, and also logs both radar data
 	//and Kalman filtered data
@@ -91,7 +91,7 @@ int main()
 			//if the packet grabbed is an empty packet with no track, pause for 50 milliseconds and check for another packet
 			if (!toTrack.tracking) {
 				std::cout << "No Current Tracks" << std::endl;
-				std::this_thread::sleep_for(std::chrono::milliseconds(100));
+				std::this_thread::sleep_for(std::chrono::milliseconds(50));
 				continue;
 			}
 
@@ -108,6 +108,7 @@ int main()
 				kf->update(z);
 				std::cout << "kalman updated" << std::endl;
 			}
+
 			//if the packet grabbed is tracking the same object as before, update the kalman filter based on difference between last recorded track time
 			//and the previously last recorded track time
 			else if (toTrack.id == trackID) {
@@ -133,7 +134,7 @@ int main()
 		//if there's no packet in the buffer, wait a moment and check for another packet
 		else {
 			std::cout << "Nothing in the buffer" << std::endl;
-			std::this_thread::sleep_for(std::chrono::milliseconds(95));
+			std::this_thread::sleep_for(std::chrono::milliseconds(50));
 		}
 	}
 	

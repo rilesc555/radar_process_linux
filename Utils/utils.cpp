@@ -40,13 +40,13 @@ void startupScript(bnet_interface& bnet) {
 	bnet.send_command(command);
 	command = "RSP:RCSMASK:MAXRCS 10";
 	bnet.send_command(command);
-	command = "PLATFORM:STATE:ORIENTATION eldorado 0, 20, 0";
+	command = "PLATFORM:STATE:ORIENTATION eldorado 225, 20, 0";
 	bnet.send_command(command);
-	command = "PLATFORM:STATE:ELEVATIONAGL eldorado 2";
+	command = "PLATFORM:STATE:ELEVATIONAGL eldorado 0";
 	bnet.send_command(command);
 	command = "RANGE:MASK eldorado 5,131,134,0,31";
 	bnet.send_command(command);
-	command = "AGLMASK:MINAGL eldorado 5";
+	command = "AGLMASK:MINAGL eldorado 0";
 	bnet.send_command(command);
 	command = "AGLMASK:MAXAGL eldorado 500";
 	bnet.send_command(command);
@@ -147,9 +147,10 @@ void serializeCoordinates(coordinateStruct& coords, unsigned char* buffer)
 //
 coordinateStruct getMostUAV(bnet_interface& bnet)
 {
-	float vx, vy, vz, az, el, pUAV, range = 0;
+	float vx, vy, vz, az, el, range = 0;
 	int id = -1;
 	long lastTime = 0;
+	float pUAV = 0;
 	int target = 0;
 	bool tracking = false;
 	MESAK_Track track = bnet.get_track();
