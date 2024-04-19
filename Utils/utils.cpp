@@ -27,8 +27,12 @@ void startupScript(bnet_interface& bnet) {
 	bnet.set_save(TRACK_DATA, true);
 	bnet.set_collect(TRACK_DATA, true);
 	bnet.set_logging(true);
-
 	bnet.set_logging(TRACK_DATA);
+
+	bnet.set_save(STATUS_DATA, true);
+	bnet.set_collect(STATUS_DATA, true);
+	bnet.set_logging(true);
+	bnet.set_logging(STATUS_DATA);
 
 	command = "enable_track_logging";
 	bnet.send_command(command);
@@ -40,11 +44,9 @@ void startupScript(bnet_interface& bnet) {
 	bnet.send_command(command);
 	command = "RSP:RCSMASK:MAXRCS 10";
 	bnet.send_command(command);
-	command = "PLATFORM:STATE:ORIENTATION eldorado 225, 20, 0";
+	command = "PLATFORM:STATE:ORIENTATION eldorado 0, 20, 0";
 	bnet.send_command(command);
 	command = "PLATFORM:STATE:ELEVATIONAGL eldorado 0";
-	bnet.send_command(command);
-	command = "RANGE:MASK eldorado 5,131,134,0,31";
 	bnet.send_command(command);
 	command = "AGLMASK:MINAGL eldorado 0";
 	bnet.send_command(command);
@@ -93,18 +95,18 @@ void setTime(bnet_interface& bnet)
 
 int createSocket(int& sock, struct sockaddr_in& serv_addr) {
 	if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-		std::cout << "Socket creation error" << std::endl;
+		std::cout << "Pi socket creation error" << std::endl;
 		return -1;
 	}
 	serv_addr.sin_family = AF_INET;
 	serv_addr.sin_port = htons(8080);
 
 	if (inet_pton(AF_INET, "192.168.1.11", &serv_addr.sin_addr) < 0) {
-		std::cout << "Invalid address" << std::endl;
+		std::cout << "Invalid Pi address" << std::endl;
 		return -1;
 	}
 	if (connect(sock, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0) {
-		std::cout << "Connection failed" << std::endl;
+		std::cout << "Connection to pi failed" << std::endl;
 		return -1;
 	}
 	std::cout << "Socket created" << std::endl;
