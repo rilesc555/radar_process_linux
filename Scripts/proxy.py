@@ -13,8 +13,10 @@ RADAR_IP = '192.168.1.2'
 CLIENT_IP = '127.0.0.1'
 CLIENT_PORT = 9999
 
+
 def handle_client(bnet_socket, radar_socket):
     wait = [True]
+
     def forward_data(src_socket, dst_socket):
         if src_socket == radar_socket:
             filename = threading.current_thread().name + "_test.bin"
@@ -37,13 +39,12 @@ def handle_client(bnet_socket, radar_socket):
             except socket.timeout:
                 continue
 
-    
     thread1name = f"{threading.current_thread().name} forward to radar"
-    thread2name = f"{threading.current_thread().name} return to bnet" 
+    thread2name = f"{threading.current_thread().name} return to bnet"
 
-    thread1 = threading.Thread(target=forward_data, name = thread1name, args=(bnet_socket, radar_socket))
+    thread1 = threading.Thread(target=forward_data, name=thread1name, args=(bnet_socket, radar_socket))
     print(thread1name + " created")
-    thread2 = threading.Thread(target=forward_data, name = thread2name, args=(radar_socket, bnet_socket))
+    thread2 = threading.Thread(target=forward_data, name=thread2name, args=(radar_socket, bnet_socket))
     print(thread2name + " created")
     print()
     thread1.start()
@@ -57,6 +58,7 @@ def handle_client(bnet_socket, radar_socket):
     radar_socket.close()
     print(f"Closed radar socket on {threading.current_thread().name} thread")
 
+
 def start_server(portToSpoof, radarPort):
     print("Started " + threading.current_thread().name + " thread")
     proxy_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -65,7 +67,8 @@ def start_server(portToSpoof, radarPort):
 
     while True:
         bnet_socket, addr = proxy_socket.accept()
-        print(f"{threading.current_thread().name} thread accepted connection from {addr} on {proxy_socket.getsockname()}")
+        print(
+            f"{threading.current_thread().name} thread accepted connection from {addr} on {proxy_socket.getsockname()}")
 
         radar_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         radar_socket.connect((RADAR_IP, radarPort))
@@ -77,6 +80,7 @@ def start_server(portToSpoof, radarPort):
         handle_client(bnet_socket, radar_socket)
         # client_thread = threading.Thread(target=handle_client, args=(starter_socket, radar_socket))
         # client_thread.start()
+
 
 # Usage example
 if __name__ == '__main__':
@@ -91,5 +95,3 @@ if __name__ == '__main__':
     commandThread.join()
     statusThread.join()
     trackThread.join()
-
-    

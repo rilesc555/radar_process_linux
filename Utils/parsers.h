@@ -1,6 +1,13 @@
 #include <iostream>
+#include <vector>
+#include <cstdint>
+#include <cstring>
 #include "daa_track.h"
 
-track_header parseTrackHeader();
+struct parsed_packet
+{
+    track_header header;
+    std::vector<track_data> tracks;
+};
 
-track_data parseTrackData();
+parsed_packet parseTrackPacket(uint8_t* buffer, size_t size);
