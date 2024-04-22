@@ -93,7 +93,7 @@ void setTime(bnet_interface& bnet)
 	std::cout << "Radar time: " << output;
 }
 
-int createSocket(int& sock, struct sockaddr_in& serv_addr) {
+int createPiSocket(int& sock, struct sockaddr_in& serv_addr) {
 	if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
 		std::cout << "Pi socket creation error" << std::endl;
 		return -1;
@@ -113,6 +113,26 @@ int createSocket(int& sock, struct sockaddr_in& serv_addr) {
 	return 1;
 }
 
+int createProcessSocket(int &sock, sockaddr_in &serv_addr) {
+    if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+        std::cout << "Process socket creation error" << std::endl;
+        return -1;
+    }
+    serv_addr.sin_family = AF_INET;
+    serv_addr.sin_port = htons(9999);
+
+    if (inet_pton(AF_INET, "127.0.0.1", &serv_addr.sin_addr) < 0) {
+        std::cout << "Invalid Process address" << std::endl;
+        return -1;
+    }
+    if (connect(sock, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0) {
+        std::cout << "Connection to Process failed" << std::endl;
+        return -1;
+    }
+    std::cout << "Socket created" << std::endl;
+    return 1;
+}
+
 std::string getTimeString()
 {
 	std::stringstream ss;
@@ -121,16 +141,6 @@ std::string getTimeString()
 	ss << (pnow->tm_year + 1900) << "-" << (pnow->tm_mon + 1) << "-" << pnow->tm_mday << "T" << pnow->tm_hour << pnow->tm_min << pnow->tm_sec;
 	
 	return ss.str();
-}
-
-coordinateStruct getCoordinates(bnet_interface& bnet) {
-	coordinateStruct coords{};
-	if (bnet.get_track().header->nTracks > 0) {
-		coords.az = bnet.get_track().data.at(0).azest;
-		coords.el = bnet.get_track().data.at(0).elest;
-	}
-	else {}
-	return coords;
 }
 
 void serializeCoordinates(coordinateStruct& coords, unsigned char* buffer)
@@ -147,7 +157,7 @@ void serializeCoordinates(coordinateStruct& coords, unsigned char* buffer)
 
 //get coordinates of most likely UAV. Assumes there is at least one buffered track packet (could be empty or have data)
 //
-coordinateStruct getMostUAV(bnet_interface& bnet)
+coordinateStruct getMostUAV(parsed_packet& track)
 {
 	float vx, vy, vz, az, el, range = 0;
 	int id = -1;
@@ -155,31 +165,32 @@ coordinateStruct getMostUAV(bnet_interface& bnet)
 	float pUAV = 0;
 	int target = 0;
 	bool tracking = false;
-	MESAK_Track track = bnet.get_track();
-	if (track.header->nTracks == 0) {
+	if (track.header.nTracks == 0) {
 		return coordinateStruct(vx, vy, vz, az, el, range, id, lastTime, tracking);
 	}
-	else if (track.header->nTracks > 1) {
+	else if (track.header.nTracks > 1) {
 		for (size_t i = 0; i < track.header->nTracks; i++) {
-			if (track.data.at(i).probabilityUAV > pUAV) {
-				pUAV = track.data.at(i).probabilityUAV;
+			if (track.tracks.at(i).probabilityUAV > pUAV) {
+				pUAV = track.tracks.at(i).probabilityUAV;
 				target = i;
 			}
 		}
 	}
 
-	vx = track.data.at(target).velxest;
-	vz = track.data.at(target).velzest;
-	vy = track.data.at(target).velyest;
-	az = track.data.at(target).azest;
-	el = track.data.at(target).elest;
-	id = track.data.at(target).ID;
-	range = track.data.at(target).rest;
-	lastTime = track.data.at(target).lastAssociatedDataTime_ms;
+	vx = track.tracks.at(target).velxest;
+	vz = track.tracks.at(target).velzest;
+	vy = track.tracks.at(target).velyest;
+	az = track.tracks.at(target).azest;
+	el = track.tracks.at(target).elest;
+	id = track.tracks.at(target).ID;
+	range = track.tracks.at(target).rest;
+	lastTime = track.tracks.at(target).lastAssociatedDataTime_ms;
 	tracking = true;
-	
+
 	return coordinateStruct(vx, vy, vz, az, el, range, id, lastTime, tracking);
 }
+
+
 
 
 

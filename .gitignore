@@ -3,8 +3,12 @@
 .idea
 .DS_Store
 
-out/build/
+/Dependencies/bnet_api/
+
+out/
 
 /build
 
 cmake-build-release/
+
+cmake-build-debug/

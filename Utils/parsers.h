@@ -1,3 +1,6 @@
+#ifndef PARSERS_H
+#define PARSERS_H
+
 #include <iostream>
 #include <vector>
 #include <cstdint>
@@ -11,3 +14,5 @@ struct parsed_packet
 };
 
 parsed_packet parseTrackPacket(uint8_t* buffer, size_t size);
+
+#endif

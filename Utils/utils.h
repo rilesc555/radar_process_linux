@@ -12,6 +12,7 @@
 #include <unistd.h>
 #include <csignal>
 #include <ctime>
+#include "parsers.h"
 
 struct coordinateStruct
 {
@@ -36,13 +37,15 @@ void startupScript(bnet_interface& bnet);
 
 void setTime(bnet_interface& bnet);
 
-int createSocket(int& sock, struct sockaddr_in& serv_addr);
+int createPiSocket(int& sock, struct sockaddr_in& serv_addr);
+
+int createProcessSocket(int& sock, struct sockaddr_in& serv_addr);
 
 std::string getTimeString();
 
 void serializeCoordinates(coordinateStruct& coords, unsigned char* buffer);
 
-coordinateStruct getMostUAV(bnet_interface& bnet);
+coordinateStruct getMostUAV(parsed_packet& packet);
 
 
 #endif

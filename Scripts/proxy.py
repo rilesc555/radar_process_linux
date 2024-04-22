@@ -14,7 +14,7 @@ CLIENT_IP = '127.0.0.1'
 CLIENT_PORT = 9999
 
 
-def handle_client(bnet_socket, radar_socket):
+def handle_client(bnet_socket, radar_socket, radar_process_socket):
     wait = [True]
 
     def forward_data(src_socket, dst_socket):
@@ -35,7 +35,7 @@ def handle_client(bnet_socket, radar_socket):
                     break
                 dst_socket.sendall(data)
                 if src_socket == radar_socket:
-                    file.write(data)
+                    radar_process_socket.sendall(data)
             except socket.timeout:
                 continue
 
@@ -57,6 +57,8 @@ def handle_client(bnet_socket, radar_socket):
     print(f"Closed bnet socket on {threading.current_thread().name} thread")
     radar_socket.close()
     print(f"Closed radar socket on {threading.current_thread().name} thread")
+    radar_process_socket.close()
+    print(f"Closed radar process socket on {threading.current_thread().name} thread")
 
 
 def start_server(portToSpoof, radarPort):
@@ -74,8 +76,8 @@ def start_server(portToSpoof, radarPort):
         radar_socket.connect((RADAR_IP, radarPort))
         print(f"{threading.current_thread().name} socket opened with radar")
 
-        # radar_process_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        # radar_process_socket.connect((CLIENT_IP, CLIENT_PORT))
+        radar_process_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        radar_process_socket.connect((CLIENT_IP, CLIENT_PORT))
 
         handle_client(bnet_socket, radar_socket)
         # client_thread = threading.Thread(target=handle_client, args=(starter_socket, radar_socket))
