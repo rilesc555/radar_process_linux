@@ -47,6 +47,6 @@ void serializeCoordinates(coordinateStruct& coords, unsigned char* buffer);
 
 coordinateStruct getMostUAV(parsed_packet& packet);
 
-void mainLoop(int& piSock, int piSocketCreated, int& processSock, sockaddr_in& process_serv_add, sig_atomic_t& exitLoop);
+void mainLoop(std::string filename, int& piSock, int piSocketCreated, sig_atomic_t& exitLoop);
 
 #endif

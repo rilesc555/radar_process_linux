@@ -18,8 +18,8 @@
 std::string ip = "192.168.1.2";
 unsigned short port = 23;
 std::string custom_directory = ".";
-int piSock, processSock = 0;
-struct sockaddr_in pi_serv_add, process_serv_add;
+int piSock = 0;
+struct sockaddr_in pi_serv_add;
 sig_atomic_t exitLoop = 0;
 std::string command;
 int heading;
@@ -41,11 +41,16 @@ int main()
 	}
 	//create the socket to the raspberry pi (rpi), create a bnet object and connect to radar, and issue initial startup script
 	int socketCreated = createPiSocket(piSock, pi_serv_add);
+
+	std::string filename = "Test";
+	filename += getTimeString();
+
+	std::thread mainThread(mainLoop, filename, std::ref(piSock), socketCreated, std::ref(exitLoop));
+
 	std::cout << "Let's track some bad guys\n" << std::endl;
 	bnet_interface bnet_commands;
 	bnet_commands.connect(ip, port, custom_directory, 60000L);
 	startupScript(bnet_commands);
-	std::thread mainThread(mainLoop, std::ref(piSock), socketCreated, std::ref(processSock), std::ref(process_serv_add), std::ref(exitLoop));
 
 	// loop to enter any preliminary commands before tracking. C or c will start to the main tracking loop
 	while (true) {
@@ -80,7 +85,6 @@ int main()
 
 	//close the socket with the rpi
 	close(piSock);
-	close(processSock);
 	std::cout << "Socket closed" << std::endl;
 	return 0;
 }
