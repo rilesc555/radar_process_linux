@@ -115,33 +115,48 @@ int createPiSocket(int& sock, struct sockaddr_in& serv_addr) {
 	return 1;
 }
 
-int createProcessSocket(int &sock, sockaddr_in &serv_addr) {
-    if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+int* createProcessSocket(sockaddr_in &serv_addr) {
+	std::cout << "Creating process socket" << std::endl;
+	int* sock = new int;
+	if (sock) {
+		sock = 0;
+	}
+    if ((*sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
         std::cout << "Process socket creation error" << std::endl;
-        return -1;
+        return sock;
     }
+
+	int optval = 1;
+	if (setsockopt(*sock, SOL_SOCKET, SO_KEEPALIVE, &optval, sizeof(optval)) < 0) {
+		close(*sock);
+		std::cout << "Couldn't set sock to stay alive" << std::endl;
+		return sock;
+	}
+
     serv_addr.sin_family = AF_INET;
-    serv_addr.sin_port = htons(9999);
+    serv_addr.sin_port = htons(60000);
 	inet_pton(AF_INET, "127.0.0.1", &serv_addr.sin_addr);
 
-	if (bind(sock, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0) {
+	std::cout << "Listening for connection on " << inet_ntoa(serv_addr.sin_addr) << ", port " << ntohs(serv_addr.sin_port) << std::endl;
+
+	if (bind(*sock, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0) {
 		std::cout << "Binding to Process failed" << std::endl;
-		return -1;
+		return sock;
 	}
 
-	if (listen(sock, 3) < 0) {
+	if (listen(*sock, 3) < 0) {
 		std::cout << "Listening to Process failed" << std::endl;
-		return -1;
+		return sock;
 	}
 
-	auto clientSock = accept(sock, NULL, NULL);
+	auto clientSock = accept(*sock, NULL, NULL);
 	if (clientSock < 0) {
 		std::cout << "Accepting Process failed" << std::endl;
-		return -1;
+		return sock;
 	}
 
 	std::cout << "Socket created" << std::endl;
-	return 1;
+	return sock;
 }
 
 std::string getTimeString()
@@ -201,13 +216,12 @@ coordinateStruct getMostUAV(parsed_packet& track)
 	return coordinateStruct(vx, vy, vz, az, el, range, id, lastTime, tracking);
 }
 
-void mainLoop(int& piSock, int piSocketCreated, int& processSock, sockaddr_in& process_serv_add, sig_atomic_t& exitLoop)
+void mainLoop(std::string filename, int& piSock, int piSocketCreated, sig_atomic_t& exitLoop)
 {
+	int processSock = 0;
+	struct sockaddr_in process_serv_add;
 	std::ofstream outfile;
-	std::string filename;
-	std::cout << "Enter test name: " << std::endl;
-	std::cin >> filename;
-	filename += getTimeString();
+	
 	outfile.open(filename);
 	outfile << "time,rvx,rvy,rvz,raz,rel,rrange,kvx,kvy,kvz,kaz,kel" << std::endl;
 
@@ -222,14 +236,18 @@ void mainLoop(int& piSock, int piSocketCreated, int& processSock, sockaddr_in& p
 	uint8_t trackData[2600];
 	unsigned char trackBuffer[8] = { 0 };
 
-	int processSocketCreated = createProcessSocket(processSock, process_serv_add);
+	int* processSock = createProcessSocket(process_serv_add);
 
 	/*main tracking loop. CTRL+C will exit this when done. Sends radar data to rpi, and also logs both radar data
 	and Kalman filtered data*/
 	while (!exitLoop) {
 		int bytesReceived = recv(processSock, trackData, 2600, 0);
 		if (bytesReceived < 0) {
-			std::cout << "Error receiving data from process" << std::endl;
+			int errorCode = errno;
+			std::cout << "Error code when receiving from process socket: " << errorCode << std::endl;
+			close(processSock);
+			delete processSock;
+			int* processSock = createProcessSocket(process_serv_add);
 			continue;
 		}
 		else if (bytesReceived == 0) {
