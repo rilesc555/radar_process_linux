@@ -1,13 +1,15 @@
 #include <iostream>
 #include "bnet_interface.h"
 #include "utils.h"
-#include "thread"
 #include "future"
 #include "atomic"
 #include <ctime>
 #include <utility>
 #include <string>
 #include <sstream>
+#include "KalmanFilter.h"
+#include "Eigen/Dense"
+#include <fstream>
 
 void send_command(bnet_interface& bnet, std::string command)
 {
@@ -120,17 +122,26 @@ int createProcessSocket(int &sock, sockaddr_in &serv_addr) {
     }
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_port = htons(9999);
+	inet_pton(AF_INET, "127.0.0.1", &serv_addr.sin_addr);
 
-    if (inet_pton(AF_INET, "127.0.0.1", &serv_addr.sin_addr) < 0) {
-        std::cout << "Invalid Process address" << std::endl;
-        return -1;
-    }
-    if (connect(sock, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0) {
-        std::cout << "Connection to Process failed" << std::endl;
-        return -1;
-    }
-    std::cout << "Socket created" << std::endl;
-    return 1;
+	if (bind(sock, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0) {
+		std::cout << "Binding to Process failed" << std::endl;
+		return -1;
+	}
+
+	if (listen(sock, 3) < 0) {
+		std::cout << "Listening to Process failed" << std::endl;
+		return -1;
+	}
+
+	auto clientSock = accept(sock, NULL, NULL);
+	if (clientSock < 0) {
+		std::cout << "Accepting Process failed" << std::endl;
+		return -1;
+	}
+
+	std::cout << "Socket created" << std::endl;
+	return 1;
 }
 
 std::string getTimeString()
@@ -169,7 +180,7 @@ coordinateStruct getMostUAV(parsed_packet& track)
 		return coordinateStruct(vx, vy, vz, az, el, range, id, lastTime, tracking);
 	}
 	else if (track.header.nTracks > 1) {
-		for (size_t i = 0; i < track.header->nTracks; i++) {
+		for (size_t i = 0; i < track.header.nTracks; i++) {
 			if (track.tracks.at(i).probabilityUAV > pUAV) {
 				pUAV = track.tracks.at(i).probabilityUAV;
 				target = i;
@@ -188,6 +199,92 @@ coordinateStruct getMostUAV(parsed_packet& track)
 	tracking = true;
 
 	return coordinateStruct(vx, vy, vz, az, el, range, id, lastTime, tracking);
+}
+
+void mainLoop(int& piSock, int piSocketCreated, int& processSock, sockaddr_in& process_serv_add, sig_atomic_t& exitLoop)
+{
+	std::ofstream outfile;
+	std::string filename;
+	std::cout << "Enter test name: " << std::endl;
+	std::cin >> filename;
+	filename += getTimeString();
+	outfile.open(filename);
+	outfile << "time,rvx,rvy,rvz,raz,rel,rrange,kvx,kvy,kvz,kaz,kel" << std::endl;
+
+	std::cout << "Press CTRL + C to stop tracking" << std::endl;
+	KalmanFilter* kf = new KalmanFilter;
+	Eigen::VectorXd x0(7);
+	Eigen::VectorXd z(5);
+	double lastTime;
+	coordinateStruct toTrack;
+	int trackID = -1;
+	int bufferedTracks = 0;
+	uint8_t trackData[2600];
+	unsigned char trackBuffer[8] = { 0 };
+
+	int processSocketCreated = createProcessSocket(processSock, process_serv_add);
+
+	/*main tracking loop. CTRL+C will exit this when done. Sends radar data to rpi, and also logs both radar data
+	and Kalman filtered data*/
+	while (!exitLoop) {
+		int bytesReceived = recv(processSock, trackData, 2600, 0);
+		if (bytesReceived < 0) {
+			std::cout << "Error receiving data from process" << std::endl;
+			continue;
+		}
+		else if (bytesReceived == 0) {
+			std::cout << "Process socket disconnected" << std::endl;
+			break;
+		}
+		else {
+			parsed_packet packet = parseTrackPacket(trackData, bytesReceived);
+			bufferedTracks = packet.header.nTracks;
+			//if there's a packet in the buffer, do this:
+			if (bufferedTracks > 0) {
+				toTrack = getMostUAV(packet);
+
+				/*if the packet has at least one track, and the most probable track in the packet is not the current track, re-initialize the kalman filter
+				and give it a 50 millisecond update*/
+				if (toTrack.id != trackID) {
+					trackID = toTrack.id;
+					lastTime = toTrack.lastTime;
+					std::cout << "Now tracking UAV " << trackID << std::endl;
+					x0 << toTrack.vx, toTrack.vy, toTrack.vz, toTrack.az, toTrack.el, 0, 0;
+					z << toTrack.vx, toTrack.vy, toTrack.vz, toTrack.az, toTrack.el;
+					kf->init(x0, 1, trackID);
+					kf->predict(.05);
+					kf->update(z);
+					std::cout << "kalman updated" << std::endl;
+				}
+
+				/*if the packet grabbed is tracking the same object as before, update the kalman filter based on difference between last recorded track time
+				and the previously last recorded track time*/
+				else if (toTrack.id == trackID) {
+					std::cout << "still tracking " << trackID << std::endl;
+					z << toTrack.vx, toTrack.vy, toTrack.vz, toTrack.az, toTrack.el;
+					double dt = (toTrack.lastTime - lastTime) / 1000;
+					kf->predict(dt);
+					kf->update(z);
+				}
+
+				if (piSocketCreated == 1) {
+					serializeCoordinates(toTrack, trackBuffer);
+					std::cout << send(piSock, trackBuffer, sizeof(float) * 2, 0) << " bytes sent to gimbal"
+						<< std::endl;
+				}
+
+				//print radar and kalman coordinates to csv
+				outfile << toTrack.lastTime << "," << toTrack.vx << "," << toTrack.vy << "," << toTrack.vz << ","
+					<< toTrack.az << "," << toTrack.el << "," << toTrack.range << ",";
+				outfile << kf->get_x_hat()[0] << "," << kf->get_x_hat()[1] << "," << kf->get_x_hat()[2] << ","
+					<< kf->get_x_hat()[3] << "," << kf->get_x_hat()[4] << std::endl;
+			}
+			//if there's no packet in the buffer, wait a moment and check for another packet
+			else {
+				continue;
+			}
+		}
+	}
 }
 
 
