@@ -4,7 +4,6 @@
 
 #include <iostream>
 #include "bnet_interface.h"
-#include "thread"
 #include "future"
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -13,6 +12,7 @@
 #include <csignal>
 #include <ctime>
 #include "parsers.h"
+
 
 struct coordinateStruct
 {
@@ -47,5 +47,6 @@ void serializeCoordinates(coordinateStruct& coords, unsigned char* buffer);
 
 coordinateStruct getMostUAV(parsed_packet& packet);
 
+void mainLoop(int& piSock, int piSocketCreated, int& processSock, sockaddr_in& process_serv_add, sig_atomic_t& exitLoop);
 
 #endif
