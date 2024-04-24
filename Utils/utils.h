@@ -12,6 +12,8 @@
 #include <csignal>
 #include <ctime>
 #include "parsers.h"
+#include "ThreadSafeQueue.h"
+#include <atomic>
 
 
 struct coordinateStruct
@@ -39,7 +41,7 @@ void setTime(bnet_interface& bnet);
 
 int createPiSocket(int& sock, struct sockaddr_in& serv_addr);
 
-int createProcessSocket(int& sock, struct sockaddr_in& serv_addr);
+//int ProcessSocket(ThreadSafeQueue<parsed_packet>& packetQueue, sig_atomic_t& exitLoop);
 
 std::string getTimeString();
 
@@ -47,6 +49,6 @@ void serializeCoordinates(coordinateStruct& coords, unsigned char* buffer);
 
 coordinateStruct getMostUAV(parsed_packet& packet);
 
-void mainLoop(std::string filename, int& piSock, int piSocketCreated, sig_atomic_t& exitLoop);
+//void mainLoop(std::string filename, int& piSock, int piSocketCreated, sig_atomic_t& exitLoop);
 
 #endif

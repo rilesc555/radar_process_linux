@@ -17,62 +17,44 @@ RADAR_TRACK_PORT = 29982
 CLIENT_IP = '127.0.0.1'
 CLIENT_PORT = 60000
 
-def handle_client(starter_socket, radar_command_socket, process_socket=None):
+def handle_client(starter_socket, radar_socket, process_socket=None):
     close = [False]
-    
-    """def forward_data(src_socket, dst_socket):
-        if src_socket == radar_command_socket:
-            src_socket.settimeout(5)
-        while True:
-            try:
-                if not wait[0]:
-                    break    
-                data = src_socket.recv(4096)
-                if not data:
-                    if src_socket == starter_socket
-                        wait[0] = False
-                    break
-                dst_socket.sendall(data)
-                if src_socket == radar_command_socket and data_socket:
-                    data_socket.sendall(data)
-            except socket.timeout:
-                continue"""
 
     def forward_to_radar(client_socket, radar_socket):
-		client_socket.settimeout(5)
+        client_socket.settimeout(5)
         while True:
             try:    
                 if close[0]:
             	    break
-			    data = client_socket.recv(4096)
-			    if not data:
+                data = client_socket.recv(4096)
+                if not data:
                     close[0] = True
-				    break
-			    radar_socket.sendall(data)
+                    break
+                radar_socket.sendall(data)
             except socket.timeout:
-			    continue
+                continue
 
     def forward_to_client(radar_socket, client_socket, process_socket):
         radar_socket.settimeout(5)  
         while True:
             try:
                 if close[0]:
-			        break
-			    data = radar_socket.recv(4096)
-			    if not data:
-				    close[0] = True
-				    break
-			    client_socket.sendall(data)
+                   break
+                data = radar_socket.recv(4096)
+                if not data:
+                    close[0] = True
+                    break
+                client_socket.sendall(data)
                 if process_socket:
-				    process_socket.sendall(data)
+                    process_socket.sendall(data)
             except socket.timeout:
                 continue
 
     thread1name = f"{threading.current_thread().name} forward to radar"
     thread2name = f"{threading.current_thread().name} return to bnet" 
 
-    thread1 = threading.Thread(target=forward_to_radar, name = thread1name, args=(starter_socket, radar_command_socket))
-    thread2 = threading.Thread(target=forward_to_client, name = thread2name, args=(radar_command_socket, starter_socket, process_socket))
+    thread1 = threading.Thread(target=forward_to_radar, name = thread1name, args=(starter_socket, radar_socket))
+    thread2 = threading.Thread(target=forward_to_client, name = thread2name, args=(radar_socket, starter_socket, process_socket))
     thread1.start()
     thread2.start()
 
@@ -80,9 +62,9 @@ def handle_client(starter_socket, radar_command_socket, process_socket=None):
     thread2.join()
 
     starter_socket.close()
-    radar_command_socket.close()
-    if data_socket:
-		data_socket.close()
+    radar_socket.close()
+    if process_socket:
+        process_socket.close()
     
 
 def start_server(portToSpoof, radarPort):
