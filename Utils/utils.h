@@ -41,7 +41,7 @@ void setTime(bnet_interface& bnet);
 
 int createPiSocket(int& sock, struct sockaddr_in& serv_addr);
 
-//int ProcessSocket(ThreadSafeQueue<parsed_packet>& packetQueue, sig_atomic_t& exitLoop);
+int ProcessSocket(ThreadSafeQueue<parsed_packet>& packetQueue, sig_atomic_t& exitLoop);
 
 std::string getTimeString();
 
