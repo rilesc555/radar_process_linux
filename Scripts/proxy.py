@@ -21,7 +21,7 @@ def handle_client(starter_socket, radar_socket, process_socket=None):
     close = [False]
 
     def forward_to_radar(client_socket, radar_socket):
-        client_socket.settimeout(5)
+        client_socket.settimeout(1)
         while True:
             try:    
                 if close[0]:
@@ -35,7 +35,7 @@ def handle_client(starter_socket, radar_socket, process_socket=None):
                 continue
 
     def forward_to_client(radar_socket, client_socket, process_socket):
-        radar_socket.settimeout(5)  
+        radar_socket.settimeout(1)  
         while True:
             try:
                 if close[0]:
@@ -62,9 +62,12 @@ def handle_client(starter_socket, radar_socket, process_socket=None):
     thread2.join()
 
     starter_socket.close()
+    print(f"{threading.current_thread().name} closed connection to bnet")
     radar_socket.close()
+    print(f"{threading.current_thread().name} closed connection to radar")
     if process_socket:
         process_socket.close()
+        print(f"{threading.current_thread().name} closed connection to kalman filter and pi")
     
 
 def start_server(portToSpoof, radarPort):
@@ -76,7 +79,7 @@ def start_server(portToSpoof, radarPort):
     while True:    
         print(f"Proxy server listening on port {portToSpoof}")
         starter_socket, addr = proxy_socket.accept()
-        print(f"Accepted connection from {addr}")
+        print(f"{threading.current_thread().name} thread accepted connection from {addr}")
 
         radar_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         radar_socket.connect((RADAR_IP, radarPort))

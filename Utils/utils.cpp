@@ -116,59 +116,67 @@ int createPiSocket(int& sock, struct sockaddr_in& serv_addr) {
 	return 1;
 }
 
-//int ProcessSocket(ThreadSafeQueue<parsed_packet>& packetQueue, sig_atomic_t& exitLoop) {
-//	uint8_t trackData[2600];
-//	int serverSocket, clientSocket;
-//	struct sockaddr_in serv_addr, client_addr;
-//	socklen_t clientLength = sizeof(client_addr);
-//
-//	std::cout << "Creating server socket" << std::endl;
-//    if ((serverSocket = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-//        std::cout << "Process socket creation error" << std::endl;
-//        return -1;
-//    }
-//
-//    serv_addr.sin_family = AF_INET;
-//    serv_addr.sin_port = htons(60000);
-//	inet_pton(AF_INET, "127.0.0.1", &serv_addr.sin_addr);
-//	if (bind(serverSocket, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0) {
-//		std::cout << "Binding to Process failed" << std::endl;
-//		return -1;
-//	}
-//	if (listen(serverSocket, 1) < 0) {
-//		std::cout << "Listening to Process failed" << std::endl;
-//		return -1;
-//	}
-//	
-//	while (true) {
-//		if (exitLoop) {
-//			close(serverSocket);
-//			break;
-//		}
-//		std::cout << "Listening for connection on " << inet_ntoa(serv_addr.sin_addr) << ", port " << ntohs(serv_addr.sin_port) << std::endl;
-//		clientSocket = accept(serverSocket, (struct sockaddr*)&client_addr, &clientLength);
-//		std::cout << "Socket created" << std::endl;
-//		while (true) 
-//		{
-//			int bytesReceived = recv(clientSocket, trackData, 2600, 0);
-//			if (bytesReceived == 0) {
-//				std::cout << "Client disconnected" << std::endl;
-//				close(clientSocket);
-//				break;
-//			}
-//			else if (bytesReceived < 0) {
-//				std::cout << "Error receiving data" << std::endl;
-//				close(clientSocket);
-//				break;
-//			}
-//			else {
-//				parsed_packet packet = parseTrackPacket(trackData, bytesReceived);
-//				packetQueue.enqueue(packet);
-//			}
-//		}
-//	}
-//	return 1;
-//}
+
+int ProcessSocket(ThreadSafeQueue<parsed_packet>& packetQueue, sig_atomic_t& exitLoop) {
+	uint8_t trackData[2600];
+	int serverSocket, clientSocket;
+	struct sockaddr_in serv_addr, client_addr;
+	socklen_t clientLength = sizeof(client_addr);
+
+	std::cout << "Creating server socket" << std::endl;
+	if ((serverSocket = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+		std::cout << "Process socket creation error" << std::endl;
+		return -1;
+	}
+
+	serv_addr.sin_family = AF_INET;
+	serv_addr.sin_port = htons(60000);
+	inet_pton(AF_INET, "127.0.0.1", &serv_addr.sin_addr);
+	if (bind(serverSocket, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0) {
+		std::cout << "Binding to Process failed" << std::endl;
+		return -1;
+	}
+	if (listen(serverSocket, 1) < 0) {
+		std::cout << "Listening to Process failed" << std::endl;
+		return -1;
+	}
+
+	struct timeval timeout{};
+	timeout.tv_sec = 1;
+	timeout.tv_usec = 0;
+	setsockopt(clientSocket, SOL_SOCKET, SO_RCVTIMEO, (char*)&timeout, sizeof(timeout));
+	setsockopt(clientSocket, SOL_SOCKET, SO_SNDTIMEO, (char*)&timeout, sizeof(timeout));
+
+
+	while (!exitLoop) {
+		std::cout << "Listening for connection on " << inet_ntoa(serv_addr.sin_addr) << ", port " << ntohs(serv_addr.sin_port) << std::endl;
+		clientSocket = accept(serverSocket, (struct sockaddr*)&client_addr, &clientLength);
+		std::cout << "Socket created" << std::endl;
+
+		while (true) {
+			int bytesReceived = recv(clientSocket, trackData, 2600, 0);
+			if (bytesReceived == 0) {
+				std::cout << "Client disconnected" << std::endl;
+				close(clientSocket);
+				break;
+			}
+			else if (bytesReceived < 0) {
+				if (errno == EAGAIN || errno == EWOULDBLOCK) {
+					continue;
+				}
+				std::cout << "Error receiving data" << std::endl;
+				close(clientSocket);
+				break;
+			}
+			else {
+				parsed_packet packet = parseTrackPacket(trackData, bytesReceived);
+				packetQueue.enqueue(packet);
+			}
+		}
+	}
+	return 1;
+}
+
 
 std::string getTimeString()
 {
