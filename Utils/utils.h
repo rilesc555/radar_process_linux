@@ -4,7 +4,6 @@
 
 #include <iostream>
 #include "bnet_interface.h"
-#include "thread"
 #include "future"
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -12,6 +11,10 @@
 #include <unistd.h>
 #include <csignal>
 #include <ctime>
+#include "parsers.h"
+#include "ThreadSafeQueue.h"
+#include <atomic>
+
 
 struct coordinateStruct
 {
@@ -36,13 +39,16 @@ void startupScript(bnet_interface& bnet);
 
 void setTime(bnet_interface& bnet);
 
-int createSocket(int& sock, struct sockaddr_in& serv_addr);
+int createPiSocket(int& sock, struct sockaddr_in& serv_addr);
+
+int ProcessSocket(ThreadSafeQueue<parsed_packet>& packetQueue, sig_atomic_t& exitLoop);
 
 std::string getTimeString();
 
 void serializeCoordinates(coordinateStruct& coords, unsigned char* buffer);
 
-coordinateStruct getMostUAV(bnet_interface& bnet);
+coordinateStruct getMostUAV(parsed_packet& packet);
 
+//void mainLoop(std::string filename, int& piSock, int piSocketCreated, sig_atomic_t& exitLoop);
 
 #endif
