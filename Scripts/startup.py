@@ -46,7 +46,7 @@ def main():
     # startPiServer()
     # startUI()
 
-    subprocess.run(["wsl", "sudo python /mnt/c/Users/CUAV/Documents/Projects/radar_process_linux/Scripts/proxy.py", "cuav", "exec bash"])
+    subprocess.run(["wsl", "sudo python /mnt/c/Users/CUAV/Documents/Projects/radar_process_linux/Scripts/proxy.py", "cuav", "exec bash"], shell=True)
 
 if __name__ == '__main__':
     main()
