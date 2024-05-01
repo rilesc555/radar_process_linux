@@ -12,3 +12,5 @@ out/
 cmake-build-release/
 
 cmake-build-debug/
+
+./CMakePresets.json
