@@ -49,7 +49,7 @@ int main()
 	}
 	else if (answer == "U" || answer == "u") {
 		ip = "127.0.0.1";
-		std::cout << "Press CTRL + C to stop tracking" << std::endl;
+		
 	}
 	else {
 		bnet_commands.connect(ip, port, custom_directory, 60000L);
@@ -79,8 +79,6 @@ int main()
 	filename += getTimeString();
 
 	std::thread queueThread(ProcessSocket, std::ref(packetQueue), std::ref(exitLoop));
-
-
 
 	std::ofstream outfile;
 	outfile.open(filename);
