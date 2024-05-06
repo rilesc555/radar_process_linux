@@ -49,7 +49,7 @@ int main()
 	}
 	else if (answer == "U" || answer == "u") {
 		ip = "127.0.0.1";
-		
+		std::cout << "Using UI for radar control" << std::endl;
 	}
 	else {
 		bnet_commands.connect(ip, port, custom_directory, 60000L);
