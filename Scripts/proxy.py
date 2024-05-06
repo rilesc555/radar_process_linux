@@ -1,5 +1,13 @@
 import socket
-import threading
+from multiprocessing import Process, current_process
+import signal
+import sys
+
+def signal_handler(sig, frame):
+    print('You pressed Ctrl+C!')
+    sys.exit(0)
+
+signal.signal(signal.SIGINT, signal_handler)
 
 PROXY_IP = '127.0.0.1'
 PROXY_COMMAND_PORT = 23
@@ -21,7 +29,7 @@ def handle_client(starter_socket, radar_socket, process_socket=None):
     close = [False]
 
     def forward_to_radar(client_socket, radar_socket):
-        client_socket.settimeout(1)
+        client_socket.settimeout(3)
         while True:
             try:    
                 if close[0]:
@@ -35,7 +43,7 @@ def handle_client(starter_socket, radar_socket, process_socket=None):
                 continue
 
     def forward_to_client(radar_socket, client_socket, process_socket):
-        radar_socket.settimeout(1)  
+        radar_socket.settimeout(3)  
         while True:
             try:
                 if close[0]:
@@ -50,28 +58,27 @@ def handle_client(starter_socket, radar_socket, process_socket=None):
             except socket.timeout:
                 continue
 
-    thread1name = f"{threading.current_thread().name} forward to radar"
-    thread2name = f"{threading.current_thread().name} return to bnet" 
+    thread1name = f"{current_process().name} forward to radar"
+    thread2name = f"{current_process().name} return to bnet" 
 
-    thread1 = threading.Thread(target=forward_to_radar, name = thread1name, args=(starter_socket, radar_socket))
-    thread2 = threading.Thread(target=forward_to_client, name = thread2name, args=(radar_socket, starter_socket, process_socket))
-    thread1.start()
-    thread2.start()
-
-    thread1.join()
-    thread2.join()
+    Process1 = Process(target=forward_to_radar, name = thread1name, args=(starter_socket, radar_socket))
+    Process2 = Process(target=forward_to_client, name = thread2name, args=(radar_socket, starter_socket, process_socket))
+    Process1.start()
+    Process2.start()
+    Process1.join()
+    Process2.join()
 
     starter_socket.close()
-    print(f"{threading.current_thread().name} closed connection to bnet")
+    print(f"{current_process().name} closed connection to bnet")
     radar_socket.close()
-    print(f"{threading.current_thread().name} closed connection to radar")
+    print(f"{current_process().name} closed connection to radar")
     if process_socket:
         process_socket.close()
-        print(f"{threading.current_thread().name} closed connection to kalman filter and pi")
+        print(f"{current_process().name} closed connection to kalman filter and pi")
     
 
 def start_server(portToSpoof, radarPort):
-    print("Started " + threading.current_thread().name + " thread")
+    print(f"Started {current_process().name} thread")
     proxy_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     proxy_socket.bind((PROXY_IP, portToSpoof))
     proxy_socket.listen(1)
@@ -79,12 +86,12 @@ def start_server(portToSpoof, radarPort):
     while True:    
         print(f"Proxy server listening on port {portToSpoof}")
         starter_socket, addr = proxy_socket.accept()
-        print(f"{threading.current_thread().name} thread accepted connection from {addr}")
+        print(f"{current_process().name()} process accepted connection from {addr}")
 
         radar_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         radar_socket.connect((RADAR_IP, radarPort))
 
-        if threading.current_thread().name == "track":
+        if Process.name == "track":
             radar_process_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             radar_process_socket.connect((CLIENT_IP, CLIENT_PORT))
             print("Connected to track process socket")
@@ -95,15 +102,15 @@ def start_server(portToSpoof, radarPort):
 
 # Usage example
 if __name__ == '__main__':
-    commandThread = threading.Thread(target=start_server, name="command", args=(PROXY_COMMAND_PORT, RADAR_COMMAND_PORT))
-    statusThread = threading.Thread(target=start_server, name="status", args=(PROXY_STATUS_PORT, RADAR_STATUS_PORT))
-    trackThread = threading.Thread(target=start_server, name="track", args=(PROXY_TRACK_PORT, RADAR_TRACK_PORT))
+    commandProcess = Process(target=start_server, name="command", args=(PROXY_COMMAND_PORT, RADAR_COMMAND_PORT))
+    statusProcess = Process(target=start_server, name="status", args=(PROXY_STATUS_PORT, RADAR_STATUS_PORT))
+    trackProcess = Process(target=start_server, name="track", args=(PROXY_TRACK_PORT, RADAR_TRACK_PORT))
 
-    commandThread.start()
-    statusThread.start()
-    trackThread.start()
+    commandProcess.start()
+    statusProcess.start()
+    trackProcess.start()
 
-    commandThread.join()
-    statusThread.join()
-    trackThread.join()
+    commandProcess.join()
+    statusProcess.join()
+    trackProcess.join()
     

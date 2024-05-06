@@ -1,5 +1,7 @@
 import subprocess
 import time
+from fabric import Connection
+import threading
 
 # Function to execute a command and return the output
 def execute_command(command):
@@ -19,21 +21,32 @@ def startProcessor():
     commands = '''cd 
     /home/cuav/.vs/radar_process_linux/out/build/linux-release/radar_process
     exec bash'''
-    process = subprocess.Popen(['wsl', 'bash', '-c', commands], creationflags=subprocess.CREATE_NEW_CONSOLE, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,)
-    commands = '''u'''
-    out, err = process.communicate(input=commands)
-    print(out)
-    if err:
-        print(err)
+    process = subprocess.Popen(['wsl', 'bash', '-c', commands], creationflags=subprocess.CREATE_NEW_CONSOLE, stdin=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    UI = '''u'''
+    
+    out, err = process.communicate(input=UI)
   
 
 # Task 3: Open a new WSL window, SSH to a Raspberry Pi, wait for the connection, input commands, and start a Python script
 def startPiServer():
-    print("Task 3: SSH to Raspberry Pi, input commands, and start a Python script")
-    command = 'wsl bash -c "ssh pi@raspberry_pi_ip \'echo commands; python3 script.py\'"'
-    output, error = execute_command(command)
-    print("Output:", output)
-    print("Error:", error)
+
+    session = "gimbal_control_sesh"
+    with Connection("radarpi@raspberrypi.local") as c:
+        c.run('source gimbal_control_env/bin/activate')
+        c.run('cd gimbal')
+        tmux_output = c.run(f'tmux has-session -t {session}', hide=True, warn = True)
+        if not tmux_output.failed:
+            print("Session already exists. Sending keys to session")
+            c.run(f"tmux send-keys -t {session} 'python gimbal/gimbal_server.py' Entertm")
+        else:
+            print("Starting session")
+            c.run(f"tmux new-session -d -s {session}")
+            print("Sending keys to session")
+            c.run(f"tmux send-keys -t {session} 'python gimbal/gimbal_server.py' Enter")
+            
+
+
+       
 
 # Task 4: Open a program
 def startUI():
@@ -45,8 +58,26 @@ def startUI():
 
 # Main function to run the tasks
 def main():
+    # proxyThread = threading.Thread(target=startProxy, name="proxy")
+    processorThread = threading.Thread(target=startProcessor, name="processor")
+    piServerThread = threading.Thread(target=startPiServer, name="piServer")
+
+    # proxyThread.start()
+    processorThread.start()
+    piServerThread.start()
+
+    # proxyThread.join()
+    processorThread.join()
+    piServerThread.join()
+
+
+
+
+
+
+    
     # startProxy()
-    startProcessor()
+    # startProcessor()
     # startPiServer()
     # startUI()
 

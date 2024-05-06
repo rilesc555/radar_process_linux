@@ -97,6 +97,7 @@ void setTime(bnet_interface& bnet)
 }
 
 int createPiSocket(int& sock, struct sockaddr_in& serv_addr) {
+	std::cout << "Creating pi socket" << std::endl;
 	if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
 		std::cout << "Pi socket creation error" << std::endl;
 		return -1;
@@ -108,14 +109,20 @@ int createPiSocket(int& sock, struct sockaddr_in& serv_addr) {
 		std::cout << "Invalid Pi address" << std::endl;
 		return -1;
 	}
+
+	struct timeval timeout;
+	timeout.tv_sec = 1;
+	timeout.tv_usec = 0;
+	setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO, (char*)&timeout, sizeof(timeout));
 	if (connect(sock, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0) {
 		std::cout << "Connection to pi failed" << std::endl;
 		return -1;
 	}
-	std::cout << "Socket created" << std::endl;
+	else {
+		std::cout << "Connected to pi" << std::endl;
+	}
 	return 1;
 }
-
 
 int ProcessSocket(ThreadSafeQueue<parsed_packet>& packetQueue, sig_atomic_t& exitLoop) {
 	uint8_t trackData[2600];
@@ -128,14 +135,23 @@ int ProcessSocket(ThreadSafeQueue<parsed_packet>& packetQueue, sig_atomic_t& exi
 		std::cout << "Process socket creation error" << std::endl;
 		return -1;
 	}
-
+	else {
+		std::cout << "Process socket created" << std::endl;
+	}
 	serv_addr.sin_family = AF_INET;
 	serv_addr.sin_port = htons(60000);
+	int optval = 1;
 	inet_pton(AF_INET, "127.0.0.1", &serv_addr.sin_addr);
+	setsockopt(serverSocket, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(serv_addr));
+	std::cout << "Binding to process socket" << std::endl;
 	if (bind(serverSocket, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0) {
-		std::cout << "Binding to Process failed" << std::endl;
+		std::cout << "Error binding to process socket: " << strerror(errno) << std::endl;
 		return -1;
 	}
+	else {
+		std::cout << "Bound to process socket" << std::endl;
+	}
+
 	if (listen(serverSocket, 1) < 0) {
 		std::cout << "Listening to Process failed" << std::endl;
 		return -1;
@@ -174,6 +190,8 @@ int ProcessSocket(ThreadSafeQueue<parsed_packet>& packetQueue, sig_atomic_t& exi
 			}
 		}
 	}
+	close(clientSocket);
+	close(serverSocket);
 	return 1;
 }
 
