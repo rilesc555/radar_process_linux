@@ -1,5 +1,4 @@
 ﻿// radar_process_linux.cpp : Defines the entry point for the application.
-//
 
 #include <iostream>
 #include "bnet_interface.h"
@@ -36,50 +35,18 @@ int main()
 {
 	//Set to listen for CTRL+C
 	signal(SIGINT, sig_handler);
-
 	ThreadSafeQueue<parsed_packet> packetQueue;
 	std::string answer;
-	std::cout << "Press H for hack, U for simultaneous UI use, otherwise direct connect to radar: ";
-	std::getline(std::cin, answer);
 	std::cout << "Let's track some bad guys\n" << std::endl;
-	bnet_interface bnet_commands;
-	if (answer == "H" || answer == "h") {
-		ip = "127.0.0.1";
-		std::cout << "Press CTRL + C to stop tracking" << std::endl;
-	}
-	else if (answer == "U" || answer == "u") {
-		ip = "127.0.0.1";
-		std::cout << "Using UI for radar control" << std::endl;
-	}
-	else {
-		bnet_commands.connect(ip, port, custom_directory, 60000L);
-		startupScript(bnet_commands);
+	ip = "127.0.0.1";
+	std::cout << "Using UI for radar control" << std::endl;
 
-		// loop to enter any preliminary commands before tracking. C or c will start to the main tracking loop
-		while (true) {
-			std::cout << "Enter command (\"C\" to start tracking): ";
-			std::getline(std::cin, command);
-			if (command == "C" || command == "c" || command == "continue" || command == "Continue" || command == "CONTINUE") {
-				break;
-			}
-			if (command == "MODE:SWT:START" || command == "MODE:SEARCH:START") {
-				std::cout << "Calm down, I'll start tracking when I'm ready. Anything I should do BEFORE starting to track?" << std::endl;
-				continue;
-			}
-			send_command(bnet_commands, command);
-		}
-
-		//start tracking and give it a second to pick up a track
-		send_command(bnet_commands, "MODE:SWT:START");
-	}
-	//create the socket to the raspberry pi (rpi), create a bnet object and connect to radar, and issue initial startup script
 	int piSocketCreated = createPiSocket(piSock, pi_serv_add);
 
 	std::string filename = "Test";
 	filename += getTimeString();
 
 	std::thread queueThread(ProcessSocket, std::ref(packetQueue), std::ref(exitLoop));
-
 	std::ofstream outfile;
 	outfile.open(filename);
 	outfile << "time,rvx,rvy,rvz,raz,rel,rrange,kvx,kvy,kvz,kaz,kel" << std::endl;
@@ -92,8 +59,6 @@ int main()
 	int bufferedTracks = 0;
 	unsigned char trackBuffer[8] = { 0 };
 
-	/*main tracking loop. CTRL+C will exit this when done. Sends radar data to rpi, and also logs both radar data
-	and Kalman filtered data*/
 	while (!exitLoop) {
 		if (!packetQueue.empty()) {
 			parsed_packet packet = packetQueue.dequeue();
@@ -141,29 +106,13 @@ int main()
 					<< kf->get_x_hat()[3] << "," << kf->get_x_hat()[4] << std::endl;
 			}
 		}
-		else {
-			std::this_thread::sleep_for(std::chrono::milliseconds(10));
-		}
 	}
-	std::cout << "Exited main loop" << std::endl;
-	std::cout << "exitLoop value: " << exitLoop << std::endl;
+	std::cout << "\nExited main loop" << std::endl;
 	queueThread.join();
-	std::cout << "stopped receiving data from proxy" << std::endl;
-	
-	//stop tracking, stop logging, and disconnect from the radar
-	if (answer != "H" && answer != "h" && answer != "U" && answer != "u") {
-		send_command(bnet_commands, "MODE:SWT:STOP");
-		std::cout << "Stopping tracking" << std::endl;
-		bnet_commands.set_save(TRACK_DATA, false);
-		bnet_commands.set_collect(TRACK_DATA, false);
-		bnet_commands.disconnect();
-		std::cout << "Disconnected" << std::endl;
-		bnet_commands.~bnet_interface();
-	}
 
 	//close the socket with the rpi
 	close(piSock);
-	std::cout << "Socket closed" << std::endl;
+	std::cout << "Pi socket closed" << std::endl;
 	return 0;
 }
  

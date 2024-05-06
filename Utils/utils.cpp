@@ -160,14 +160,19 @@ int ProcessSocket(ThreadSafeQueue<parsed_packet>& packetQueue, sig_atomic_t& exi
 	struct timeval timeout{};
 	timeout.tv_sec = 1;
 	timeout.tv_usec = 0;
-	setsockopt(clientSocket, SOL_SOCKET, SO_RCVTIMEO, (char*)&timeout, sizeof(timeout));
-	setsockopt(clientSocket, SOL_SOCKET, SO_SNDTIMEO, (char*)&timeout, sizeof(timeout));
+	setsockopt(serverSocket, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
+	setsockopt(serverSocket, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout));
 
 
 	while (!exitLoop) {
 		std::cout << "Listening for connection on " << inet_ntoa(serv_addr.sin_addr) << ", port " << ntohs(serv_addr.sin_port) << std::endl;
 		clientSocket = accept(serverSocket, (struct sockaddr*)&client_addr, &clientLength);
-		std::cout << "Socket created" << std::endl;
+		if (clientSocket < 0) {
+			continue;
+		}
+		else if (clientSocket > 0) {
+			std::cout << "Socket created" << std::endl;
+		}
 
 		while (true) {
 			int bytesReceived = recv(clientSocket, trackData, 2600, 0);
@@ -192,6 +197,7 @@ int ProcessSocket(ThreadSafeQueue<parsed_packet>& packetQueue, sig_atomic_t& exi
 	}
 	close(clientSocket);
 	close(serverSocket);
+	std::cout << "Process socket closed" << std::endl;
 	return 1;
 }
 
