@@ -142,7 +142,9 @@ int ProcessSocket(ThreadSafeQueue<parsed_packet>& packetQueue, sig_atomic_t& exi
 	serv_addr.sin_port = htons(60000);
 	int optval = 1;
 	inet_pton(AF_INET, "127.0.0.1", &serv_addr.sin_addr);
-	setsockopt(serverSocket, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(serv_addr));
+	if (setsockopt(serverSocket, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(serv_addr)) < 0) {
+		std::cout << "Error setting socket options" << std::endl;
+	}
 	std::cout << "Binding to process socket" << std::endl;
 	if (bind(serverSocket, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0) {
 		std::cout << "Error binding to process socket: " << strerror(errno) << std::endl;
@@ -165,7 +167,6 @@ int ProcessSocket(ThreadSafeQueue<parsed_packet>& packetQueue, sig_atomic_t& exi
 
 
 	while (!exitLoop) {
-		std::cout << "Listening for connection on " << inet_ntoa(serv_addr.sin_addr) << ", port " << ntohs(serv_addr.sin_port) << std::endl;
 		clientSocket = accept(serverSocket, (struct sockaddr*)&client_addr, &clientLength);
 		if (clientSocket < 0) {
 			continue;
