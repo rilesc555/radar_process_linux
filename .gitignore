@@ -1,0 +1,14 @@
+.vs/
+.git
+.idea
+.DS_Store
+
+Dependencies/
+
+out/
+
+/build
+
+cmake-build-release/
+
+cmake-build-debug/
